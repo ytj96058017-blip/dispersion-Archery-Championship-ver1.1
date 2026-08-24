@@ -1,0 +1,1649 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>산포도 양궁 챔피언십 - RPG 사수 육성 모드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;600;800&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Noto Sans KR', 'sans-serif'],
+                        orbitron: ['Orbitron', 'sans-serif'],
+                        title: ['Black Han Sans', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #06090e;
+            color: #f3f4f6;
+            touch-action: manipulation;
+            user-select: none;
+            overflow-x: hidden;
+        }
+        .arcade-font { font-family: 'Orbitron', sans-serif; }
+        .title-font { font-family: 'Black Han Sans', sans-serif; }
+        .glass-panel {
+            background: rgba(18, 24, 38, 0.92);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
+        }
+        .btn-glow {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-glow:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
+        }
+        .btn-glow:active {
+            transform: translateY(1px);
+        }
+        .pulse-subtle {
+            animation: pulseSubtle 1.8s infinite ease-in-out alternate;
+        }
+        @keyframes pulseSubtle {
+            0% { transform: scale(0.98); opacity: 0.85; }
+            100% { transform: scale(1.02); opacity: 1; }
+        }
+        @keyframes heartPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.25); }
+            100% { transform: scale(1); }
+        }
+        .heart-beat {
+            animation: heartPulse 0.6s infinite ease-in-out;
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0b0f19; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    </style>
+</head>
+<body class="font-sans antialiased min-h-screen flex flex-col justify-between bg-slate-950 text-slate-100">
+
+    <header class="w-full max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3 z-20 border-b border-slate-800/80">
+        <div class="flex items-center gap-3">
+            <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-500 flex items-center justify-center text-2xl shadow-lg shadow-rose-950/50">
+                🎯
+            </div>
+            <div>
+                <h1 class="title-font text-xl md:text-2xl text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-rose-300 to-indigo-300">
+                    산포도 양궁 챔피언십 <span class="text-xs bg-indigo-600 text-white font-sans px-2 py-0.5 rounded-full ml-1 font-bold">RPG 사수 육성 모드</span>
+                </h1>
+                <p class="text-[11px] text-slate-400 font-medium">수학 문제를 풀어 스탯 포인트를 획득하고 나만의 명사수를 영구 육성하세요!</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <!-- Stat Upgrade Center Modal Button -->
+            <button onclick="openStatUpgradeModal()" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-indigo-500 hover:from-amber-400 hover:to-indigo-400 text-slate-950 text-xs font-black transition flex items-center gap-1.5 shadow-lg shadow-amber-500/20 btn-glow">
+                <i class="fa-solid fa-chart-pie text-sm"></i>
+                <span>사수 스탯 훈련소</span>
+                <span id="header-stat-pts" class="bg-slate-950 text-amber-300 text-[10px] px-2 py-0.5 rounded-full font-bold ml-0.5">0 Pts</span>
+            </button>
+
+            <!-- Leaderboard Button -->
+            <button onclick="openLeaderboardModal()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-bold transition border border-slate-700 flex items-center gap-1.5">
+                <i class="fa-solid fa-trophy text-amber-400"></i> 실시간 명예의 전당
+            </button>
+
+            <!-- Audio Toggle -->
+            <button id="sound-btn" onclick="toggleAudio()" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-slate-300 transition">
+                <i id="sound-icon" class="fa-solid fa-volume-high text-xs"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="w-full max-w-6xl mx-auto px-4 my-auto py-3 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        
+        <!-- Left Column: Interactive 3D Archery Range Arena -->
+        <section class="lg:col-span-7 flex flex-col items-center w-full">
+            <div class="glass-panel w-full rounded-2xl p-4 flex flex-col items-center relative overflow-hidden">
+                
+                <!-- Match Status HUD Bar -->
+                <div class="w-full flex justify-between items-center mb-2 px-1">
+                    <div class="flex items-center gap-2">
+                        <span class="px-3 py-1 rounded-full text-xs font-extrabold arcade-font bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 flex items-center gap-1.5">
+                            <i class="fa-solid fa-bullseye"></i> 화살 <span id="hud-arrow-count" class="text-amber-400 font-black text-sm">1</span> / <span id="hud-arrow-max">10</span>
+                        </span>
+                    </div>
+
+                    <!-- Current Score & Mean Live Counter -->
+                    <div class="flex items-center gap-3 font-mono text-xs">
+                        <div class="text-slate-300">누적: <span id="hud-total-score" class="font-black text-base text-amber-400">0.0</span>점</div>
+                        <div class="text-slate-400">평균(x̄): <span id="hud-live-mean" class="font-bold text-slate-200">0.0</span></div>
+                    </div>
+                </div>
+
+                <!-- 3D Archery Canvas Viewport -->
+                <div class="relative w-full aspect-[4/3] max-w-[580px] bg-slate-950 rounded-2xl overflow-hidden shadow-2xl border border-slate-800 flex items-center justify-center">
+                    <canvas id="gameCanvas" class="w-full h-full cursor-crosshair"></canvas>
+
+                    <!-- Drag Guidance Toast Overlay -->
+                    <div id="drag-guide" class="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-slate-900/90 border border-amber-400/80 text-amber-300 text-xs font-bold text-center pointer-events-none pulse-subtle flex items-center gap-2 shadow-2xl z-10 backdrop-blur">
+                        <i class="fa-solid fa-hand-pointer text-amber-400 text-base"></i>
+                        <span>활시위를 당기고 <strong class="text-rose-400">일반 새🦅를 피해서</strong> 발사하세요! <span class="text-rose-300 font-bold">(충돌 시 5.0점 탄착으로 표준편차 폭등! / ✨황금새 격추 시 +5 Pts!)</span></span>
+                    </div>
+
+                    <!-- Heartbeat & BPM Monitor Widget -->
+                    <div id="heartbeat-widget" class="absolute top-3 left-3 bg-slate-900/90 backdrop-blur border border-rose-500/50 rounded-xl p-2 flex items-center gap-2 text-xs shadow-lg hidden">
+                        <i class="fa-solid fa-heart text-rose-500 text-sm heart-beat"></i>
+                        <div>
+                            <div class="text-[9px] text-slate-400 font-bold uppercase">심박수 / 호흡</div>
+                            <div class="font-mono font-bold text-rose-300 text-xs"><span id="bpm-val">72</span> BPM</div>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Wind Vector Gauge Widget -->
+                    <div class="absolute top-3 right-3 bg-slate-900/90 backdrop-blur border border-slate-700/80 rounded-xl p-2.5 flex flex-col items-center text-[11px] font-mono shadow-lg">
+                        <span class="text-slate-400 text-[9px] font-bold uppercase tracking-wider">돌풍 (DYNAMIC WIND)</span>
+                        <div class="flex items-center gap-2 mt-1">
+                            <i id="wind-arrow" class="fa-solid fa-location-arrow text-rose-400 text-sm transition-transform duration-300"></i>
+                            <span id="wind-val" class="font-bold text-slate-100">2.1 m/s</span>
+                        </div>
+                    </div>
+
+                    <!-- Toast FX Overlay for Bullseye / X-RING -->
+                    <div id="bullseye-toast" class="absolute inset-0 pointer-events-none flex flex-col items-center justify-center opacity-0 transition-all duration-300 scale-50 z-30">
+                        <div class="title-font text-4xl md:text-5xl text-amber-300 drop-shadow-[0_5px_30px_rgba(245,158,11,0.95)]">
+                            X-RING 10.9! 🎯
+                        </div>
+                        <div id="toast-subtext" class="text-emerald-300 font-bold text-xs mt-2 bg-black/90 px-5 py-2 rounded-full border border-emerald-500/50 backdrop-blur shadow-2xl">
+                            탄착군 정중앙 관통! 표준편차가 대폭 감소합니다!
+                        </div>
+                    </div>
+                </div>
+
+                <div class="w-full mt-3">
+                    <button id="math-chance-banner-btn" onclick="openMathQuizModal()" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500/20 via-rose-500/20 to-indigo-500/20 border border-amber-500/40 hover:border-amber-400 text-left transition flex items-center justify-between group shadow-lg btn-glow">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-amber-500/30 text-amber-300 flex items-center justify-center text-sm font-black border border-amber-500/40 group-hover:scale-110 transition">
+                                <i class="fa-solid fa-brain"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-black text-amber-300 group-hover:text-white flex items-center gap-2">
+                                    <span>수학 퀴즈 풀고 사수 스탯 포인트 획득하기</span>
+                                    <span id="math-chance-badge" class="bg-rose-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-sans">1경기당 최대 7회 도전 가능 (남은 기회: 7/7)</span>
+                                </div>
+                                <div class="text-[11px] text-slate-300">보통 난이도: +1 Pt | 고난도: 🔥 +4 Pts! (스탯 훈련소에서 능력치 영구 상향)</div>
+                            </div>
+                        </div>
+                        <span id="math-chance-btn-text" class="text-xs bg-amber-400 text-slate-950 font-black px-3 py-1.5 rounded-lg shadow flex items-center gap-1">
+                            문제 풀기 <i class="fa-solid fa-arrow-right"></i>
+                        </span>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <section class="lg:col-span-5 flex flex-col gap-4">
+            
+            <!-- Character RPG Stat Panel -->
+            <div class="glass-panel rounded-2xl p-4 border-l-4 border-l-amber-500">
+                <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+                    <h2 class="font-bold text-amber-300 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-user-ninja text-amber-400"></i> 사수 영구 스탯 상태
+                    </h2>
+                    <button onclick="openStatUpgradeModal()" class="text-[10px] px-2.5 py-1 rounded-lg bg-amber-500 text-slate-950 font-black hover:bg-amber-400 transition">
+                        <i class="fa-solid fa-plus"></i> 스탯 투자
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+                    <div class="bg-slate-900/80 p-2 rounded-xl border border-slate-800">
+                        <div class="text-[10px] text-slate-400">표준편차(s) 제어</div>
+                        <div class="flex justify-between items-center mt-1">
+                            <span id="stat-lv-stddev" class="font-bold text-emerald-400">Lv. 0</span>
+                            <span id="stat-val-stddev" class="text-[10px] text-slate-400">(s=0.90)</span>
+                        </div>
+                    </div>
+                    <div class="bg-slate-900/80 p-2 rounded-xl border border-slate-800">
+                        <div class="text-[10px] text-slate-400">바람 편차 저항</div>
+                        <div class="flex justify-between items-center mt-1">
+                            <span id="stat-lv-wind" class="font-bold text-sky-400">Lv. 0</span>
+                            <span id="stat-val-wind" class="text-[10px] text-slate-400">(0% 저항)</span>
+                        </div>
+                    </div>
+                    <div class="bg-slate-900/80 p-2 rounded-xl border border-slate-800">
+                        <div class="text-[10px] text-slate-400">심박/손떨림 안정</div>
+                        <div class="flex justify-between items-center mt-1">
+                            <span id="stat-lv-steady" class="font-bold text-indigo-400">Lv. 0</span>
+                            <span id="stat-val-steady" class="text-[10px] text-slate-400">(0% 억제)</span>
+                        </div>
+                    </div>
+                    <div class="bg-slate-900/80 p-2 rounded-xl border border-slate-800">
+                        <div class="text-[10px] text-slate-400">극단값(Outlier) 방어</div>
+                        <div class="flex justify-between items-center mt-1">
+                            <span id="stat-lv-outlier" class="font-bold text-rose-400">Lv. 0</span>
+                            <span id="stat-val-outlier" class="text-[10px] text-slate-400">(삐끗 22%)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-4 border-l-4 border-l-indigo-500">
+                <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+                    <h2 class="font-bold text-slate-100 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line text-indigo-400"></i> 실시간 탄착군 산포도 분석
+                    </h2>
+                    <span id="dispersion-grade-badge" class="text-[11px] px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 font-bold border border-slate-700">
+                        발사 대기 중
+                    </span>
+                </div>
+
+                <!-- Live Metrics Summary -->
+                <div class="grid grid-cols-3 gap-2 mb-3">
+                    <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 text-center">
+                        <span class="text-[10px] text-slate-400 font-bold block mb-0.5">평균 (x̄)</span>
+                        <span id="stat-mean" class="arcade-font text-amber-300 text-sm font-bold">0.0</span>
+                    </div>
+                    <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 text-center">
+                        <span class="text-[10px] text-slate-400 font-bold block mb-0.5">분산 (s²)</span>
+                        <span id="stat-variance" class="arcade-font text-sky-300 text-sm font-bold">0.00</span>
+                    </div>
+                    <div class="bg-slate-900/80 p-2.5 rounded-xl border border-indigo-500/40 text-center bg-indigo-950/20">
+                        <span class="text-[10px] text-indigo-300 font-bold block mb-0.5">표준편차 (s)</span>
+                        <span id="stat-stddev" class="arcade-font text-emerald-400 text-sm font-bold">0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-4">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="font-bold text-xs text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-table text-amber-400"></i> 편차 및 분산 정밀 계산 표
+                    </h3>
+                    <span id="dev-sum-badge" class="arcade-font text-[10px] text-rose-400 font-bold bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                        편차의 합 = 0
+                    </span>
+                </div>
+
+                <div class="overflow-y-auto max-h-[180px] rounded-xl border border-slate-800/80">
+                    <table class="w-full text-xs text-left text-slate-300 font-mono">
+                        <thead class="bg-slate-900/90 text-slate-400 uppercase text-[10px] sticky top-0 backdrop-blur">
+                            <tr>
+                                <th class="p-2 border-b border-slate-800">화살</th>
+                                <th class="p-2 border-b border-slate-800">점수(x)</th>
+                                <th class="p-2 border-b border-slate-800">편차(x - x̄)</th>
+                                <th class="p-2 border-b border-slate-800">편차²</th>
+                            </tr>
+                        </thead>
+                        <tbody id="calc-table-body" class="divide-y divide-slate-800/60 bg-slate-950/50">
+                            <tr>
+                                <td colspan="4" class="p-4 text-center text-slate-500 font-sans text-xs">
+                                    화살을 발사하면 올림픽 소수점 계산 과정이 표시됩니다.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Action Controls -->
+            <div class="flex gap-2">
+                <button onclick="resetMatch()" class="flex-1 py-3 px-4 rounded-xl font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center justify-center gap-2 text-xs btn-glow">
+                    <i class="fa-solid fa-rotate-right"></i> 다시 도전 (스탯 유지)
+                </button>
+                <button onclick="openLeaderboardModal()" class="flex-1 py-3 px-4 rounded-xl font-bold bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-lg transition flex items-center justify-center gap-2 text-xs btn-glow">
+                    <i class="fa-solid fa-trophy"></i> 실시간 명예의 전당
+                </button>
+            </div>
+
+        </section>
+    </main>
+
+    <div id="quiz-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
+        <div class="glass-panel w-full max-w-lg rounded-2xl p-6 border border-amber-500/40 space-y-4 shadow-2xl relative">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="title-font text-xl text-amber-400 flex items-center gap-2">
+                    <i class="fa-solid fa-brain text-amber-300"></i> 스탯 포인트 수학 퀴즈 <span id="quiz-modal-chance-text" class="text-xs text-slate-300 font-sans font-normal ml-2"></span>
+                </h3>
+                <button onclick="closeMathQuizModal()" class="text-slate-400 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div id="quiz-diff-selector" class="grid grid-cols-2 gap-2">
+                <button id="btn-diff-easy" onclick="selectQuizDifficulty('easy')" class="p-3 rounded-xl border border-sky-500/50 bg-sky-950/40 text-sky-300 text-left hover:bg-sky-900/40 transition">
+                    <div class="text-xs font-bold flex items-center justify-between">
+                        <span>🟢 보통 난이도</span>
+                        <span class="text-[9px] bg-sky-500 text-slate-950 font-black px-1.5 py-0.5 rounded">+1 Pt</span>
+                    </div>
+                    <div class="text-[10px] text-slate-300 mt-1">개념/평균 문제 (성공 시 1포인트)</div>
+                </button>
+
+                <button id="btn-diff-hard" onclick="selectQuizDifficulty('hard')" class="p-3 rounded-xl border border-rose-500/50 bg-rose-950/40 text-rose-300 text-left hover:bg-rose-900/40 transition">
+                    <div class="text-xs font-bold flex items-center justify-between">
+                        <span>🔥 고난도 문제</span>
+                        <span class="text-[9px] bg-rose-500 text-white font-black px-1.5 py-0.5 rounded">+4 Pts</span>
+                    </div>
+                    <div class="text-[10px] text-slate-300 mt-1">응용/변량 변환 문제 (성공 시 대량 4포인트!)</div>
+                </button>
+            </div>
+
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                <div id="quiz-question-box" class="text-xs font-bold text-slate-100 leading-relaxed"></div>
+                <div id="quiz-options-container" class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2"></div>
+            </div>
+            <p class="text-[10px] text-rose-400 font-bold text-center">⚠️ 주의: 1경기당 최대 7번 도전 가능하며, 틀리면 포인트 없이 해당 발사로 넘어갑니다!</p>
+        </div>
+    </div>
+
+    <div id="stat-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+        <div class="glass-panel w-full max-w-lg rounded-2xl p-6 border border-amber-500/40 space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="title-font text-2xl text-amber-400 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-pie text-amber-300"></i> 사수 스탯 훈련소 (RPG)
+                </h3>
+                <button onclick="closeStatUpgradeModal()" class="text-slate-400 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
+                <span class="text-slate-300 font-bold">보유 스탯 포인트:</span>
+                <span id="modal-available-pts" class="arcade-font text-base text-amber-300 font-bold">0 Pts</span>
+            </div>
+
+            <div class="space-y-3 max-h-[320px] overflow-y-auto pr-1">
+                <!-- Stat 1 -->
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="font-bold text-emerald-300"><i class="fa-solid fa-bullseye"></i> 표준편차(s) 제어 (기본 집탄률)</span>
+                        <span id="stat-level-1" class="font-mono text-emerald-400 font-bold">Lv. 0 / Lv. 20</span>
+                    </div>
+                    <p class="text-[10px] text-slate-400">탄착군의 오차 범위 표준편차(s)를 줄입니다. 투자할수록 조준 원이 좁아집니다.</p>
+                    <div class="flex gap-2">
+                        <button onclick="upgradeStat('stddev', 1)" class="flex-1 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-slate-950 text-xs font-black transition">+1 Pt 투자</button>
+                        <button onclick="upgradeStat('stddev', 5)" class="flex-1 py-1.5 rounded-lg bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-bold transition">+5 Pts 투자</button>
+                    </div>
+                </div>
+
+                <!-- Stat 2 -->
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="font-bold text-sky-300"><i class="fa-solid fa-wind"></i> 바람 편차 저항</span>
+                        <span id="stat-level-2" class="font-mono text-sky-400 font-bold">Lv. 0 / Lv. 20</span>
+                    </div>
+                    <p class="text-[10px] text-slate-400">바람의 밀림 편차 오차를 방어합니다. 투자할수록 바람의 영향이 급감합니다.</p>
+                    <div class="flex gap-2">
+                        <button onclick="upgradeStat('wind', 1)" class="flex-1 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-slate-950 text-xs font-black transition">+1 Pt 투자</button>
+                        <button onclick="upgradeStat('wind', 5)" class="flex-1 py-1.5 rounded-lg bg-sky-800 hover:bg-sky-700 text-white text-xs font-bold transition">+5 Pts 투자</button>
+                    </div>
+                </div>
+
+                <!-- Stat 3 -->
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="font-bold text-indigo-300"><i class="fa-solid fa-heart-pulse"></i> 심박/손떨림 안정</span>
+                        <span id="stat-level-3" class="font-mono text-indigo-400 font-bold">Lv. 0 / Lv. 20</span>
+                    </div>
+                    <p class="text-[10px] text-slate-400">시위를 당길 때 발생하는 손떨림 진폭을 억제합니다. 조준경 요동을 줄여줍니다.</p>
+                    <div class="flex gap-2">
+                        <button onclick="upgradeStat('steady', 1)" class="flex-1 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-slate-950 text-xs font-black transition">+1 Pt 투자</button>
+                        <button onclick="upgradeStat('steady', 5)" class="flex-1 py-1.5 rounded-lg bg-indigo-800 hover:bg-indigo-700 text-white text-xs font-bold transition">+5 Pts 투자</button>
+                    </div>
+                </div>
+
+                <!-- Stat 4 -->
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="font-bold text-rose-300"><i class="fa-solid fa-shield-halved"></i> 극단값(Outlier) 방어</span>
+                        <span id="stat-level-4" class="font-mono text-rose-400 font-bold">Lv. 0 / Lv. 20</span>
+                    </div>
+                    <p class="text-[10px] text-slate-400">발사 순간 사수의 손이 삐끗하여 화살이 6~7점으로 튀는 '실수발(Flinch)' 확률을 차단합니다.</p>
+                    <div class="flex gap-2">
+                        <button onclick="upgradeStat('outlier', 1)" class="flex-1 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-slate-950 text-xs font-black transition">+1 Pt 투자</button>
+                        <button onclick="upgradeStat('outlier', 5)" class="flex-1 py-1.5 rounded-lg bg-rose-800 hover:bg-rose-700 text-white text-xs font-bold transition">+5 Pts 투자</button>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="closeStatUpgradeModal()" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition">
+                확인 및 닫기
+            </button>
+        </div>
+    </div>
+
+    <div id="leaderboard-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+        <div class="glass-panel w-full max-w-2xl rounded-2xl p-6 border border-amber-500/40 space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="title-font text-2xl text-amber-400 flex items-center gap-2">
+                    <i class="fa-solid fa-trophy text-amber-300"></i> 학급 실시간 명예의 전당 Top 10 (Hall of Fame)
+                </h3>
+                <button onclick="closeLeaderboardModal()" class="text-slate-400 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-300">
+                구글 시트 연동으로 학급 전체 학생들의 기록이 실시간 집계됩니다! <strong>고득점(≥88점) 및 표준편차(s &lt; 0.35)</strong>가 우수할수록 상위 순위에 올라갑니다.
+            </p>
+
+            <div class="overflow-y-auto max-h-[280px] rounded-xl border border-slate-800">
+                <table class="w-full text-xs text-left text-slate-300 font-mono">
+                    <thead class="bg-slate-900 text-slate-400 uppercase text-[10px] sticky top-0">
+                        <tr>
+                            <th class="p-2.5 border-b border-slate-800">순위</th>
+                            <th class="p-2.5 border-b border-slate-800">이름</th>
+                            <th class="p-2.5 border-b border-slate-800">수여 칭호</th>
+                            <th class="p-2.5 border-b border-slate-800">총점</th>
+                            <th class="p-2.5 border-b border-slate-800">표준편차(s)</th>
+                            <th class="p-2.5 border-b border-slate-800">탄착 등급</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-table-body" class="divide-y divide-slate-800/80 bg-slate-950/60"></tbody>
+                </table>
+            </div>
+
+            <div class="flex justify-between items-center pt-2 text-xs">
+                <button onclick="openLeaderboardModal()" class="text-amber-400 hover:text-amber-300 transition text-[11px] font-bold">
+                    <i class="fa-solid fa-arrows-rotate"></i> 실시간 순위 새로고침
+                </button>
+                <button onclick="closeLeaderboardModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold transition">
+                    닫기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Match Game Over Modal -->
+    <div id="gameover-modal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 hidden">
+        <div class="glass-panel w-full max-w-md rounded-2xl p-6 border border-amber-500/50 space-y-4 shadow-2xl text-center">
+            <div class="title-font text-3xl text-amber-300">
+                🏆 올림픽 10발 완수!
+            </div>
+
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2 font-mono">
+                <div class="text-xs text-slate-400">최종 결과 리포트</div>
+                <div class="text-2xl font-black text-amber-400" id="final-total-score">0.0점</div>
+                <div class="text-xs text-slate-300">
+                    평균 x̄: <span id="final-mean" class="text-sky-300 font-bold">0.0</span> | 
+                    표준편차 s: <span id="final-stddev" class="text-emerald-400 font-bold">0.00</span>
+                </div>
+                <div class="pt-3 flex flex-col items-center gap-2">
+                    <div class="text-[10px] text-amber-300/80 uppercase tracking-widest font-bold">🎉 이번 경기 수여 칭호 🎉</div>
+                    <span id="final-title-badge" class="px-4 py-1.5 rounded-xl text-sm font-black bg-gradient-to-r from-amber-500 via-rose-500 to-indigo-500 text-slate-950 shadow-lg shadow-amber-500/20 border border-amber-300/50 animate-bounce">
+                        칭호 계산 중...
+                    </span>
+                    <span id="final-grade-badge" class="px-3 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
+                        SSS Class 명사수
+                    </span>
+                </div>
+            </div>
+
+            <div class="space-y-2 text-left">
+                <label class="block text-xs text-slate-300 font-bold">이름/학번 입력하여 학급 명예의 전당 등록</label>
+                <input id="input-player-name" type="text" maxlength="10" placeholder="예: 3학년 2반 김수학" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-amber-300 font-bold focus:outline-none focus:border-amber-400">
+            </div>
+
+            <button id="btn-save-record" onclick="saveMatchRecord()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-slate-950 font-black text-xs shadow-lg transition btn-glow">
+                명예의 전당 등록 & 기록 저장
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Google Apps Script API Backend Endpoint
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbysVXNGKmK2O26BxOXd0kDIyoiJ7OqC2Y9sUOKrEgXIMsvx4hczsmYHMOXR75s-ESyUjA/exec";
+
+        let soundEnabled = true;
+        let audioCtx = null;
+
+        // RPG Stat Points State
+        let availableStatPts = 0;
+        let playerStats = {
+            stddev: 0,   // Lv.0 ~ 20 (Reduces base deviation s)
+            wind: 0,     // Lv.0 ~ 20 (Reduces wind drift)
+            steady: 0,   // Lv.0 ~ 20 (Reduces heartbeat tremble)
+            outlier: 0   // Lv.0 ~ 20 (Suppresses wild misses)
+        };
+
+        const maxMathQuizLimit = 7;
+        let mathQuizUsedCount = 0; // Up to 7 shot-quizzes per match
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            initAudio();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'pull') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(120, now);
+                osc.frequency.linearRampToValueAtTime(280, now + 0.2);
+                gain.gain.setValueAtTime(0.08, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            } else if (type === 'release') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(580, now);
+                osc.frequency.exponentialRampToValueAtTime(90, now + 0.18);
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+                osc.start(now);
+                osc.stop(now + 0.18);
+            } else if (type === 'hit') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(240, now);
+                osc.frequency.exponentialRampToValueAtTime(70, now + 0.12);
+                gain.gain.setValueAtTime(0.6, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+                osc.start(now);
+                osc.stop(now + 0.12);
+            } else if (type === 'bullseye') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.setValueAtTime(659.25, now + 0.08);
+                osc.frequency.setValueAtTime(783.99, now + 0.16);
+                osc.frequency.setValueAtTime(1046.50, now + 0.24);
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                osc.start(now);
+                osc.stop(now + 0.5);
+            } else if (type === 'heartbeat') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(60, now);
+                osc.frequency.exponentialRampToValueAtTime(30, now + 0.08);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                osc.start(now);
+                osc.stop(now + 0.08);
+            } else if (type === 'birdHit') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(200, now + 0.3);
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            }
+        }
+
+        function toggleAudio() {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('sound-icon');
+            icon.className = soundEnabled ? 'fa-solid fa-volume-high text-xs' : 'fa-solid fa-volume-xmark text-xs text-rose-400';
+        }
+
+        let currentShots = []; // [{dx, dy, score}]
+        let maxArrows = 10;
+        let currentArrowIndex = 0;
+
+        // Input Drag & Aiming Physics
+        let isDragging = false;
+        let dragStart = { x: 0, y: 0 };
+        let dragCurrent = { x: 0, y: 0 };
+        let dragStartTime = 0;
+
+        // Dynamic Wind System
+        let baseWindSpeed = 2.2;
+        let windAngle = Math.PI / 3;
+        let currentWindSpeed = 2.2;
+
+        // Slow Motion FX Timer
+        let slowMoTimer = 0;
+
+        // Flying Arrow Animation State
+        let flyingArrow = null;
+
+        // Canvas & Particles
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let birds = [];
+
+        function initBirds() {
+            birds = [
+                { x: -60, y: 0.35, speed: 2.2, size: 18, isGolden: false, wingAngle: 0, flapSpeed: 0.18 },
+                { x: 700, y: 0.42, speed: -2.8, size: 15, isGolden: Math.random() < 0.04, wingAngle: 1.5, flapSpeed: 0.22 }
+            ];
+        }
+
+        function updateBirds(w, h, timeScale = 1.0) {
+            birds.forEach(bird => {
+                bird.x += bird.speed * timeScale * (window.devicePixelRatio || 1);
+                bird.wingAngle += bird.flapSpeed * timeScale;
+
+                if (bird.speed > 0 && bird.x > w + 80) {
+                    bird.x = -80;
+                    bird.y = 0.32 + Math.random() * 0.15;
+                    bird.isGolden = Math.random() < 0.04;
+                } else if (bird.speed < 0 && bird.x < -80) {
+                    bird.x = w + 80;
+                    bird.y = 0.32 + Math.random() * 0.15;
+                    bird.isGolden = Math.random() < 0.04;
+                }
+            });
+        }
+
+        function drawBirds(ctx, h) {
+            birds.forEach(bird => {
+                const py = h * bird.y;
+                const dpr = window.devicePixelRatio || 1;
+                ctx.save();
+                ctx.translate(bird.x, py);
+                if (bird.speed < 0) ctx.scale(-1, 1);
+
+                const size = bird.size * dpr;
+                const wingFlap = Math.sin(bird.wingAngle);
+
+                if (bird.isGolden) {
+                    ctx.shadowColor = '#facc15';
+                    ctx.shadowBlur = 15 * dpr;
+                }
+
+                ctx.fillStyle = bird.isGolden ? '#facc15' : '#334155';
+                ctx.strokeStyle = bird.isGolden ? '#b45309' : '#0f172a';
+                ctx.lineWidth = 1.5 * dpr;
+
+                ctx.beginPath();
+                ctx.moveTo(-size * 0.8, 0);
+                ctx.lineTo(-size * 1.3, -size * 0.3);
+                ctx.lineTo(-size * 1.3, size * 0.3);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                const wingY = wingFlap * size * 1.1;
+                ctx.beginPath();
+                ctx.moveTo(-size * 0.2, 0);
+                ctx.quadraticCurveTo(0, -size * 1.2 + wingY, size * 0.8, -size * 0.5 + wingY * 0.5);
+                ctx.quadraticCurveTo(size * 0.2, -size * 0.2, 0, 0);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.ellipse(0, 0, size * 0.8, size * 0.35, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = bird.isGolden ? '#fef08a' : '#e2e8f0';
+                ctx.beginPath();
+                ctx.arc(size * 0.7, -size * 0.1, size * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#f59e0b';
+                ctx.beginPath();
+                ctx.moveTo(size * 0.9, -size * 0.2);
+                ctx.lineTo(size * 1.3, 0);
+                ctx.lineTo(size * 0.85, size * 0.1);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.restore();
+            });
+        }
+
+        function randomizeWind() {
+            baseWindSpeed = Math.random() * 2.8 + 1.2;
+            windAngle = Math.random() * Math.PI * 2;
+        }
+
+        function updateWindPhysics() {
+            const gustNoise = Math.sin(Date.now() * 0.003) * 0.8;
+            currentWindSpeed = Math.max(0.4, baseWindSpeed + gustNoise);
+
+            const arrowIcon = document.getElementById('wind-arrow');
+            if (arrowIcon) {
+                arrowIcon.style.transform = `rotate(${windAngle}rad)`;
+            }
+            const windVal = document.getElementById('wind-val');
+            if (windVal) {
+                windVal.textContent = `${currentWindSpeed.toFixed(1)} m/s`;
+            }
+        }
+
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+        }
+
+        function drawScene() {
+            resizeCanvas();
+            const w = canvas.width;
+            const h = canvas.height;
+
+            updateWindPhysics();
+            updateBirds(w, h, 1.0);
+
+            ctx.clearRect(0, 0, w, h);
+
+            let cameraScale = 1.0;
+            if (slowMoTimer > 0) {
+                slowMoTimer -= 0.02;
+                cameraScale = 1.0 + Math.sin(slowMoTimer * Math.PI) * 0.15;
+            }
+
+            ctx.save();
+            ctx.translate(w / 2, h / 2);
+            ctx.scale(cameraScale, cameraScale);
+            ctx.translate(-w / 2, -h / 2);
+
+            // 3D Field
+            const horizonY = h * 0.30;
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
+            skyGrad.addColorStop(0, '#040711');
+            skyGrad.addColorStop(1, '#0f172a');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, w, horizonY);
+
+            const grassGrad = ctx.createLinearGradient(0, horizonY, 0, h);
+            grassGrad.addColorStop(0, '#064e3b');
+            grassGrad.addColorStop(1, '#022c22');
+            ctx.fillStyle = grassGrad;
+            ctx.fillRect(0, horizonY, w, h - horizonY);
+
+            ctx.strokeStyle = 'rgba(16, 185, 129, 0.2)';
+            ctx.lineWidth = 2 * window.devicePixelRatio;
+            for (let i = -3; i <= 3; i++) {
+                ctx.beginPath();
+                ctx.moveTo(w / 2 + i * 20 * window.devicePixelRatio, horizonY);
+                ctx.lineTo(w / 2 + i * 180 * window.devicePixelRatio, h);
+                ctx.stroke();
+            }
+
+            // Target Stand & Target
+            const swayAmplitude = Math.min(45, currentArrowIndex * 4.5) * window.devicePixelRatio;
+            const targetSwayX = Math.sin(Date.now() * 0.0018) * swayAmplitude;
+
+            const targetX = w / 2 + targetSwayX;
+            const targetY = h * 0.38;
+            const maxRadius = Math.min(w, h) * 0.28;
+
+            ctx.beginPath();
+            ctx.moveTo(targetX - maxRadius * 0.6, h * 0.65);
+            ctx.lineTo(targetX, targetY);
+            ctx.lineTo(targetX + maxRadius * 0.6, h * 0.65);
+            ctx.lineWidth = 4 * window.devicePixelRatio;
+            ctx.strokeStyle = '#1e293b';
+            ctx.stroke();
+
+            const rings = [
+                { r: 1.00, color: '#1e293b', border: '#334155' },
+                { r: 0.80, color: '#0284c7', border: '#0369a1' },
+                { r: 0.60, color: '#e11d48', border: '#be123c' },
+                { r: 0.40, color: '#f59e0b', border: '#d97706' },
+                { r: 0.20, color: '#facc15', border: '#eab308' },
+                { r: 0.05, color: '#ffffff', border: '#f59e0b' }
+            ];
+
+            rings.forEach(ring => {
+                ctx.beginPath();
+                ctx.arc(targetX, targetY, maxRadius * ring.r, 0, Math.PI * 2);
+                ctx.fillStyle = ring.color;
+                ctx.fill();
+                ctx.lineWidth = 1.5 * window.devicePixelRatio;
+                ctx.strokeStyle = ring.border;
+                ctx.stroke();
+            });
+
+            // Draw Realtime Mean Center & Standard Deviation Circle
+            if (currentShots.length >= 2) {
+                const scores = currentShots.map(s => s.score);
+                const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
+                const variance = scores.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / scores.length;
+                const stdDev = Math.sqrt(variance);
+
+                const meanDx = currentShots.reduce((sum, s) => sum + s.dx, 0) / currentShots.length;
+                const meanDy = currentShots.reduce((sum, s) => sum + s.dy, 0) / currentShots.length;
+                const meanPx = targetX + meanDx * maxRadius;
+                const meanPy = targetY + meanDy * maxRadius;
+
+                const stdRadius = Math.max(0.06, stdDev * 0.12) * maxRadius;
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(meanPx, meanPy, stdRadius, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(99, 102, 241, 0.22)';
+                ctx.fill();
+                ctx.setLineDash([4, 4]);
+                ctx.strokeStyle = '#a5b4fc';
+                ctx.lineWidth = 2 * window.devicePixelRatio;
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.arc(meanPx, meanPy, 4 * window.devicePixelRatio, 0, Math.PI * 2);
+                ctx.fillStyle = '#38bdf8';
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // Draw Arrow Hits
+            currentShots.forEach((s, idx) => {
+                const px = targetX + s.dx * maxRadius;
+                const py = targetY + s.dy * maxRadius;
+
+                ctx.beginPath();
+                ctx.arc(px, py, 5 * window.devicePixelRatio, 0, Math.PI * 2);
+                ctx.fillStyle = s.score >= 10.5 ? '#facc15' : '#f43f5e';
+                ctx.fill();
+                ctx.lineWidth = 1.5 * window.devicePixelRatio;
+                ctx.strokeStyle = '#ffffff';
+                ctx.stroke();
+
+                ctx.fillStyle = '#000000';
+                ctx.font = `bold ${6 * window.devicePixelRatio}px Orbitron`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText((idx + 1).toString(), px, py);
+            });
+
+            drawBirds(ctx, h);
+
+            const bowCenterX = w / 2;
+            const bowCenterY = h * 0.88;
+            const bowRadius = Math.min(w, h) * 0.22;
+
+            const bowTipLeft = { x: bowCenterX - bowRadius, y: bowCenterY - bowRadius * 0.3 };
+            const bowTipRight = { x: bowCenterX + bowRadius, y: bowCenterY - bowRadius * 0.3 };
+
+            let stringNotch = { x: bowCenterX, y: bowCenterY - bowRadius * 0.3 };
+            let aimX = targetX;
+            let aimY = targetY;
+
+            if (isDragging && currentArrowIndex < maxArrows) {
+                const holdDuration = (Date.now() - dragStartTime) / 1000;
+                
+                const currentBPM = Math.min(160, Math.floor(70 + holdDuration * 22));
+                document.getElementById('bpm-val').textContent = currentBPM;
+
+                if (Math.floor(Date.now() / (60000 / currentBPM)) % 2 === 0) {
+                    playSound('heartbeat');
+                }
+
+                const pullX = dragCurrent.x - dragStart.x;
+                const pullY = dragCurrent.y - dragStart.y;
+
+                stringNotch.x = bowCenterX + pullX * 0.4;
+                stringNotch.y = (bowCenterY - bowRadius * 0.3) + Math.max(0, pullY * 0.75);
+
+                const steadyDamp = Math.max(0.08, 1.0 - (playerStats.steady / 20) * 0.92);
+                let wobbleAmp = (Math.min(70, holdDuration * 16.0) + Math.sin(Date.now() * 0.015) * 14) * window.devicePixelRatio * steadyDamp;
+
+                const lissajousX = Math.sin(Date.now() * 0.009) * wobbleAmp;
+                const lissajousY = Math.sin(Date.now() * 0.018) * (wobbleAmp * 0.6);
+
+                aimX = targetX - pullX * 0.9 + lissajousX;
+                aimY = targetY - pullY * 0.9 + lissajousY;
+
+                const currentBaseStdDev = Math.max(0.12, 0.90 - (playerStats.stddev / 20) * 0.78);
+                const aimCircleRadius = currentBaseStdDev * maxRadius * 0.4;
+
+                ctx.save();
+                ctx.beginPath();
+                ctx.moveTo(stringNotch.x, stringNotch.y);
+                ctx.lineTo(aimX, aimY);
+                ctx.setLineDash([6, 6]);
+                ctx.strokeStyle = 'rgba(251, 191, 36, 0.7)';
+                ctx.lineWidth = 2 * window.devicePixelRatio;
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.arc(aimX, aimY, aimCircleRadius, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(16, 185, 129, 0.15)';
+                ctx.fill();
+                ctx.strokeStyle = '#10b981';
+                ctx.lineWidth = 1.5 * window.devicePixelRatio;
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.arc(aimX, aimY, (12 + wobbleAmp * 0.2) * window.devicePixelRatio, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(244, 63, 94, 0.8)';
+                ctx.lineWidth = 1.5 * window.devicePixelRatio;
+                ctx.stroke();
+
+                ctx.restore();
+            }
+
+            ctx.beginPath();
+            ctx.moveTo(bowTipLeft.x, bowTipLeft.y);
+            ctx.quadraticCurveTo(bowCenterX, bowCenterY + bowRadius * 0.3, bowTipRight.x, bowTipRight.y);
+            ctx.lineWidth = 9 * window.devicePixelRatio;
+            ctx.strokeStyle = '#d97706';
+            ctx.lineCap = 'round';
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(bowTipLeft.x, bowTipLeft.y);
+            ctx.lineTo(stringNotch.x, stringNotch.y);
+            ctx.lineTo(bowTipRight.x, bowTipRight.y);
+            ctx.lineWidth = 2.5 * window.devicePixelRatio;
+            ctx.strokeStyle = isDragging ? '#f59e0b' : '#ffffff';
+            ctx.stroke();
+
+            if (flyingArrow) {
+                flyingArrow.progress += 0.09;
+                const p = flyingArrow.progress;
+                const currX = flyingArrow.startX + (flyingArrow.endX - flyingArrow.startX) * p;
+                const currY = flyingArrow.startY + (flyingArrow.endY - flyingArrow.startY) * p;
+                const scale = 1.0 - p * 0.6;
+
+                birds.forEach(bird => {
+                    const birdPx = bird.x;
+                    const birdPy = h * bird.y;
+                    const dist = Math.hypot(currX - birdPx, currY - birdPy);
+
+                    if (dist < bird.size * 1.5 * window.devicePixelRatio && p > 0.2 && p < 0.85) {
+                        playSound('birdHit');
+                        spawnParticles(currX, currY, bird.isGolden ? '#facc15' : '#e2e8f0');
+
+                        if (bird.isGolden) {
+                            showToast("황금새 격추! 🦅✨", "+5 스탯 포인트를 즉시 획득했습니다!");
+                            availableStatPts += 5;
+                            updateStatUI();
+                        } else {
+                            showToast("새 장애물 충돌! 🦅💥", "화살 궤적 이탈! (5.0점 탄착으로 표준편차 폭등!)");
+                            flyingArrow.score = 5.0;
+                            flyingArrow.endX += (Math.random() < 0.5 ? 1 : -1) * 90 * window.devicePixelRatio;
+                            flyingArrow.endY += (Math.random() < 0.5 ? 1 : -1) * 90 * window.devicePixelRatio;
+                        }
+
+                        bird.x = -100;
+                    }
+                });
+
+                ctx.save();
+                ctx.translate(currX, currY);
+                ctx.scale(scale, scale);
+
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(0, -35 * window.devicePixelRatio);
+                ctx.lineWidth = 4 * window.devicePixelRatio;
+                ctx.strokeStyle = '#e2e8f0';
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(0, -35 * window.devicePixelRatio);
+                ctx.lineTo(-5 * window.devicePixelRatio, -25 * window.devicePixelRatio);
+                ctx.lineTo(5 * window.devicePixelRatio, -25 * window.devicePixelRatio);
+                ctx.fillStyle = '#f43f5e';
+                ctx.fill();
+
+                ctx.restore();
+
+                if (p >= 1.0) {
+                    onArrowImpact(flyingArrow);
+                    flyingArrow = null;
+                }
+            }
+
+            particles.forEach((p, idx) => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= 0.025;
+                if (p.alpha <= 0) particles.splice(idx, 1);
+                else {
+                    ctx.save();
+                    ctx.globalAlpha = p.alpha;
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            });
+
+            ctx.restore();
+        }
+
+        function shootArrow() {
+            if (currentArrowIndex >= maxArrows || flyingArrow) return;
+
+            playSound('release');
+
+            const w = canvas.width;
+            const h = canvas.height;
+
+            const swayAmplitude = Math.min(45, currentArrowIndex * 4.5) * window.devicePixelRatio;
+            const targetSwayX = Math.sin(Date.now() * 0.0018) * swayAmplitude;
+
+            const targetX = w / 2 + targetSwayX;
+            const targetY = h * 0.38;
+            const maxRadius = Math.min(w, h) * 0.28;
+
+            const holdDuration = dragStartTime ? (Date.now() - dragStartTime) / 1000 : 0;
+            const pullX = dragCurrent.x - dragStart.x;
+            const pullY = dragCurrent.y - dragStart.y;
+
+            const steadyDamp = Math.max(0.08, 1.0 - (playerStats.steady / 20) * 0.92);
+            let wobbleAmp = (Math.min(70, holdDuration * 16.0) + Math.sin(Date.now() * 0.015) * 14) * window.devicePixelRatio * steadyDamp;
+
+            const lissajousX = Math.sin(Date.now() * 0.009) * wobbleAmp;
+            const lissajousY = Math.sin(Date.now() * 0.018) * (wobbleAmp * 0.6);
+
+            let aimDx = (-(pullX * 0.9) + lissajousX) / maxRadius;
+            let aimDy = (-(pullY * 0.9) + lissajousY) / maxRadius;
+
+            const windDamp = 1.0 - (playerStats.wind / 20) * 0.88;
+            const windFactorX = Math.cos(windAngle) * (currentWindSpeed * 0.05) * windDamp;
+            const windFactorY = Math.sin(windAngle) * (currentWindSpeed * 0.05) * windDamp;
+
+            let currentStdDev = Math.max(0.12, 0.90 - (playerStats.stddev / 20) * 0.78);
+
+            let noiseX = randomGaussian(0, currentStdDev);
+            let noiseY = randomGaussian(0, currentStdDev);
+
+            const flinchChance = Math.max(0, 0.22 - (playerStats.outlier / 20) * 0.22);
+            if (Math.random() < flinchChance) {
+                const flinchDirectionX = (Math.random() < 0.5 ? 1 : -1) * (0.28 + Math.random() * 0.18);
+                const flinchDirectionY = (Math.random() < 0.5 ? 1 : -1) * (0.28 + Math.random() * 0.18);
+                noiseX += flinchDirectionX;
+                noiseY += flinchDirectionY;
+                showToast("💥 손 삐끗(Flinch) 발생!", "극단값 방어 스탯이 낮아 손이 미끄러졌습니다!");
+            }
+
+            const finalDx = aimDx + windFactorX + noiseX;
+            const finalDy = aimDy + windFactorY + noiseY;
+
+            const endPx = targetX + finalDx * maxRadius;
+            const endPy = targetY + finalDy * maxRadius;
+
+            const dist = Math.sqrt(finalDx * finalDx + finalDy * finalDy);
+            
+            let score = 10.9 - (dist / 0.10);
+            score = Math.max(5.0, Math.min(10.9, score));
+            score = Math.round(score * 10) / 10;
+
+            flyingArrow = {
+                startX: w / 2,
+                startY: h * 0.85,
+                endX: endPx,
+                endY: endPy,
+                progress: 0,
+                score: score,
+                dx: finalDx,
+                dy: finalDy
+            };
+
+            document.getElementById('heartbeat-widget').classList.add('hidden');
+            randomizeWind();
+        }
+
+        function onArrowImpact(arrow) {
+            currentShots.push({
+                dx: arrow.dx,
+                dy: arrow.dy,
+                score: arrow.score
+            });
+
+            currentArrowIndex++;
+
+            if (arrow.score >= 10.5) {
+                playSound('bullseye');
+                slowMoTimer = 1.0;
+                showToast(`X-RING ${arrow.score}! 🎯`, "탄착군 정중앙 관통! 표준편차가 대폭 감소합니다!");
+            } else {
+                playSound('hit');
+            }
+
+            spawnParticles(arrow.endX, arrow.endY, arrow.score >= 10.5 ? '#facc15' : '#f43f5e');
+            updateHUD();
+
+            if (currentArrowIndex >= maxArrows) {
+                setTimeout(showGameOverModal, 700);
+            }
+        }
+
+        function updateHUD() {
+            document.getElementById('hud-arrow-count').textContent = Math.min(currentArrowIndex + 1, maxArrows);
+            document.getElementById('hud-arrow-max').textContent = maxArrows;
+
+            const scores = currentShots.map(s => s.score);
+            const totalScore = scores.reduce((a, b) => a + b, 0);
+            document.getElementById('hud-total-score').textContent = totalScore.toFixed(1);
+
+            if (scores.length > 0) {
+                const mean = totalScore / scores.length;
+                const variance = scores.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / scores.length;
+                const stdDev = Math.sqrt(variance);
+
+                document.getElementById('hud-live-mean').textContent = mean.toFixed(1);
+                document.getElementById('stat-mean').textContent = mean.toFixed(1);
+                document.getElementById('stat-variance').textContent = variance.toFixed(2);
+                document.getElementById('stat-stddev').textContent = stdDev.toFixed(2);
+
+                const badge = document.getElementById('dispersion-grade-badge');
+                if (stdDev < 0.25 && totalScore >= 95.0) {
+                    badge.className = "text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold";
+                    badge.textContent = "SSS Class (올림픽 신기록)";
+                } else if (stdDev < 0.50 && totalScore >= 88.0) {
+                    badge.className = "text-[11px] px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-bold";
+                    badge.textContent = "S Class (안정적 집탄)";
+                } else {
+                    badge.className = "text-[11px] px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 font-bold";
+                    badge.textContent = "C Class (기복 심함)";
+                }
+            }
+
+            renderMathTable();
+            updateStatUI();
+        }
+
+        function updateStatUI() {
+            document.getElementById('header-stat-pts').textContent = `${availableStatPts} Pts`;
+            const modalPts = document.getElementById('modal-available-pts');
+            if (modalPts) modalPts.textContent = `${availableStatPts} Pts`;
+
+            document.getElementById('stat-lv-stddev').textContent = `Lv. ${playerStats.stddev}`;
+            document.getElementById('stat-val-stddev').textContent = `(s=${(0.90 - (playerStats.stddev / 20) * 0.78).toFixed(2)})`;
+
+            document.getElementById('stat-lv-wind').textContent = `Lv. ${playerStats.wind}`;
+            document.getElementById('stat-val-wind').textContent = `(${(playerStats.wind * 4.4).toFixed(0)}% 저항)`;
+
+            document.getElementById('stat-lv-steady').textContent = `Lv. ${playerStats.steady}`;
+            document.getElementById('stat-val-steady').textContent = `(${(playerStats.steady * 4.6).toFixed(0)}% 억제)`;
+
+            const flinchChance = Math.max(0, 22 - playerStats.outlier * 1.1).toFixed(0);
+            document.getElementById('stat-lv-outlier').textContent = `Lv. ${playerStats.outlier}`;
+            document.getElementById('stat-val-outlier').textContent = `(삐끗 ${flinchChance}%)`;
+
+            const l1 = document.getElementById('stat-level-1');
+            if (l1) l1.textContent = `Lv. ${playerStats.stddev} / Lv. 20`;
+            const l2 = document.getElementById('stat-level-2');
+            if (l2) l2.textContent = `Lv. ${playerStats.wind} / Lv. 20`;
+            const l3 = document.getElementById('stat-level-3');
+            if (l3) l3.textContent = `Lv. ${playerStats.steady} / Lv. 20`;
+            const l4 = document.getElementById('stat-level-4');
+            if (l4) l4.textContent = `Lv. ${playerStats.outlier} / Lv. 20`;
+        }
+
+        function upgradeStat(statKey, pts) {
+            if (availableStatPts < pts) {
+                showToast("⚠️ 스탯 포인트 부족", "수학 퀴즈를 풀어 스탯 포인트를 더 모으세요!");
+                return;
+            }
+            if (playerStats[statKey] + pts > 20) {
+                showToast("⚠️ 최대 레벨 달성", "이 스탯은 이미 최고 레벨(Lv. 20)에 도달했습니다!");
+                return;
+            }
+
+            availableStatPts -= pts;
+            playerStats[statKey] += pts;
+            playSound('bullseye');
+            showToast("✨ 사수 스탯 영구 상향!", `${statKey.toUpperCase()} 스탯이 +${pts} 강화되었습니다!`);
+            updateStatUI();
+        }
+
+        function openStatUpgradeModal() {
+            updateStatUI();
+            document.getElementById('stat-modal').classList.remove('hidden');
+        }
+
+        function closeStatUpgradeModal() {
+            document.getElementById('stat-modal').classList.add('hidden');
+        }
+
+        function renderMathTable() {
+            const tbody = document.getElementById('calc-table-body');
+            if (currentShots.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-500 font-sans text-xs">화살을 발사하면 소수점 정밀 계산 과정이 나타납니다.</td></tr>`;
+                return;
+            }
+
+            const scores = currentShots.map(s => s.score);
+            const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
+
+            let html = '';
+            let devSum = 0;
+
+            scores.forEach((s, idx) => {
+                const dev = s - mean;
+                devSum += dev;
+                const devSq = dev * dev;
+
+                html += `
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="p-2 font-bold text-slate-400">#${idx + 1}</td>
+                        <td class="p-2 font-bold text-amber-300">${s.toFixed(1)}점</td>
+                        <td class="p-2 ${dev < 0 ? 'text-sky-400' : dev > 0 ? 'text-rose-400' : 'text-slate-300'}">
+                            ${dev > 0 ? '+' : ''}${dev.toFixed(2)}
+                        </td>
+                        <td class="p-2 text-emerald-400">${devSq.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+            document.getElementById('dev-sum-badge').textContent = `Σ 편차 = ${Math.abs(devSum) < 0.01 ? '0.00' : devSum.toFixed(2)}`;
+        }
+
+        let selectedDifficulty = 'easy';
+
+        const quizBank = {
+            easy: [
+                { q: "자료 8, 10, 7, 10, 5의 평균(x̄)은 얼마일까요?", opts: ["7.0점", "8.0점", "8.5점", "9.0점"], ans: 1 },
+                { q: "어떤 자료의 편차(x - x̄)의 총합은 항상 얼마일까요?", opts: ["0", "1", "평균값", "표준편차"], ans: 0 },
+                { q: "분산(s²)은 무엇의 평균인가요?", opts: ["변량의 평균", "편차의 평균", "편차 제곱의 평균", "표준편차의 제곱근"], ans: 2 },
+                { q: "표준편차가 작다는 것은 점수들이 어떻게 분포되어 있다는 뜻일까요?", opts: ["평균 근처에 고르게 모여 있다", "넓게 흩어져 있다", "무조건 10점이다", "극단값이 많다"], ans: 0 },
+                { q: "자료 2, 4, 6, 8, 10의 평균(x̄)은 얼마인가요?", opts: ["4", "5", "6", "8"], ans: 2 },
+                { q: "모든 변량이 동일한 자료(예: 7, 7, 7, 7)의 표준편차는 얼마일까요?", opts: ["0", "1", "7", "알 수 없다"], ans: 0 },
+                { q: "네 개 자료의 편차가 각각 -3, +1, -1, x일 때, x의 값은 얼마일까요?", opts: ["+1", "+2", "+3", "+4"], ans: 2 },
+                { q: "어떤 자료의 분산(s²)이 9일 때, 이 자료의 표준편차(s)는 얼마인가요?", opts: ["1.5", "3", "4.5", "81"], ans: 1 },
+                { q: "표준편차(s)는 분산(s²)의 무엇을 의미하나요?", opts: ["양의 제곱근", "음의 제곱근", "제곱값", "2배 한 값"], ans: 0 },
+                { q: "대표값 중 자료의 모든 값의 합을 자료의 개수로 나눈 값은 무엇인가요?", opts: ["최빈값", "중앙값", "평균", "분산"], ans: 2 },
+                { q: "자료가 대표값 주위에 어떻게 흩어져 있는지를 나타낸 수치를 무엇이라 하나요?", opts: ["대표값", "산포도", "편차", "계급값"], ans: 1 },
+                { q: "자료 10, 20, 30, 40, 50의 중앙값과 평균의 관계는 어떠한가요?", opts: ["중앙값이 더 크다", "평균이 더 크다", "두 값이 같다 (30)", "비교할 수 없다"], ans: 2 },
+                { q: "다음 중 산포도에 해당하지 않는 수치는 무엇인가요?", opts: ["분산", "표준편차", "평균", "사범위"], ans: 2 },
+                { q: "어떤 변량의 편차가 음수(-)라는 것은 무슨 의미인가요?", opts: ["변량이 평균보다 작다", "변량이 평균보다 크다", "변량이 0이다", "분산이 음수이다"], ans: 0 },
+                { q: "어떤 변량의 편차가 양수(+)라는 것은 무슨 의미인가요?", opts: ["변량이 평균보다 작다", "변량이 평균보다 크다", "변량이 평균과 같다", "알 수 없다"], ans: 1 },
+                { q: "자료 A(5, 5, 5, 5)와 자료 B(1, 5, 5, 9) 중 표준편차가 더 작은 자료는?", opts: ["자료 A", "자료 B", "두 자료가 같다", "비교할 수 없다"], ans: 0 },
+                { q: "변량 x의 값이 평균(x̄)과 정확히 같을 때, 이 변량의 편차는 얼마인가요?", opts: ["-1", "0", "1", "x̄"], ans: 1 },
+                { q: "분산을 구할 때 편차를 그냥 더하지 않고 '제곱'하는 이유는 무엇인가요?", opts: ["편차의 합이 항상 0이 되는 것을 막기 위해", "숫자를 크게 만들기 위해", "평균을 구하기 쉽게 하기 위해", "음수를 없애지 않기 위해"], ans: 0 },
+                { q: "자료 1, 3, 5, 7, 9의 평균(x̄)은 얼마인가요?", opts: ["3", "4", "5", "6"], ans: 2 },
+                { q: "다섯 개 자료 4, 5, 6, 7, 8에서 '6'의 편차는 얼마인가요?", opts: ["-2", "-1", "0", "+1"], ans: 2 },
+                { q: "어떤 자료의 표준편차가 0이라는 것은 무슨 뜻인가요?", opts: ["모든 변량이 0이다", "모든 변량의 값이 서로 같다", "자료가 심하게 흩어져 있다", "평균이 0이다"], ans: 1 },
+                { q: "두 집단 A, B의 평균이 같고 표준편차가 각각 2, 5일 때, 성적이 더 고른 집단은?", opts: ["A 집단", "B 집단", "두 집단이 같다", "비교할 수 없다"], ans: 0 },
+                { q: "다음 중 중학교 과정에서 배우는 산포도의 대표적인 두 수치는?", opts: ["평균과 중앙값", "분산과 표준편차", "최빈값과 평균", "편차와 최빈값"], ans: 1 },
+                { q: "자료 5개의 합이 25일 때, 이 자료의 평균(x̄)은 얼마인가요?", opts: ["4", "5", "6", "25"], ans: 1 },
+                { q: "어떤 변량이 평균보다 4만큼 더 클 때, 이 변량의 편차는 얼마인가요?", opts: ["-4", "0", "+4", "+16"], ans: 2 }
+            ],
+            hard: [
+                { q: "변량 x, y, z의 평균이 10이고 표준편차가 2일 때, 2x+1, 2y+1, 2z+1의 표준편차는?", opts: ["2", "4", "5", "8"], ans: 1 },
+                { q: "다섯 개 자료의 편차가 -2, +1, +3, x, -1 일 때, x의 값과 분산(s²)을 구하면?", opts: ["x = -1, 분산 = 3.00", "x = -1, 분산 = 3.20", "x = +1, 분산 = 4.00", "x = 0, 분산 = 2.50"], ans: 1 },
+                { q: "어떤 학급 학생 5명의 수학 점수 편차가 -3, +1, +4, -2, x이다. 이때 분산은?", opts: ["4.0", "5.0", "6.0", "7.0"], ans: 2 },
+                { q: "모든 변량에 각각 5를 더하면 표준편차(s)는 어떻게 변할까요?", opts: ["5만큼 커진다", "5배가 된다", "변하지 않는다", "0이 된다"], ans: 2 },
+                { q: "변량 x, y, z의 분산이 5일 때, 변량 3x-2, 3y-2, 3z-2의 분산은 얼마일까요?", opts: ["13", "15", "30", "45"], ans: 3 },
+                { q: "자료 A의 표준편차가 0.4점, 자료 B의 표준편차가 1.8점일 때 탄착군이 더 고른 집단은?", opts: ["자료 A", "자료 B", "두 자료가 같다", "알 수 없다"], ans: 0 },
+                { q: "편차가 -2, -1, 0, +1, +2 인 5개 자료의 분산(s²)은 얼마인가요?", opts: ["1.0", "1.5", "2.0", "2.5"], ans: 2 },
+                { q: "평균이 80점인 두 학급 A(분산 4), B(분산 16)가 있다. 점수의 기복이 더 큰 학급은?", opts: ["A학급", "B학급", "두 학급이 같다", "비교할 수 없다"], ans: 1 },
+                { q: "세 변량 a, b, c의 평균이 6이고 분산이 4일 때, a²+b²+c²의 값은 얼마인가요?", opts: ["108", "120", "132", "144"], ans: 1 },
+                { q: "변량 x, y, z의 평균이 m, 분산이 v일 때, -2x+3, -2y+3, -2z+3의 분산은?", opts: ["v", "2v", "4v", "-2v+3"], ans: 2 },
+                { q: "4개 자료 3, 5, a, b의 평균이 6이고 분산이 5일 때, a+b의 값은 얼마인가요?", opts: ["14", "15", "16", "18"], ans: 2 },
+                { q: "자료 1, 2, 3, 4, 5의 분산(s²)을 정확히 구하면 얼마인가요?", opts: ["1.5", "2.0", "2.5", "3.0"], ans: 1 },
+                { q: "다섯 학생의 턱걸이 횟수의 편차가 -1, 2, x, -2, 1일 때, x의 값과 분산(s²)은?", opts: ["x = 0, 분산 = 2.0", "x = 0, 분산 = 2.5", "x = 1, 분산 = 2.0", "x = -1, 분산 = 3.0"], ans: 0 },
+                { q: "평균이 10, 표준편차가 3인 자료의 모든 값에 -3을 곱하고 5를 더한 새 자료의 분산은?", opts: ["9", "27", "81", "100"], ans: 2 },
+                { q: "변량 x에 대하여 2x-5의 평균이 15이고 표준편차가 6일 때, 원래 변량 x의 표준편차는?", opts: ["3", "6", "7", "12"], ans: 0 },
+                { q: "5개 변량의 평균이 8, 표준편차가 3일 때, 5a+2, 5b+2, 5c+2, 5d+2, 5e+2의 분산은?", opts: ["15", "45", "75", "225"], ans: 3 },
+                { q: "A모둠(10명, 평균 70, 분산 9)과 B모둠(10명, 평균 70, 분산 25)을 합친 20명의 분산은?", opts: ["15", "17", "18", "34"], ans: 1 },
+                { q: "두 자료 X, Y의 변량이 y = -x + 10 관계일 때, X의 분산이 16이면 Y의 분산은?", opts: ["-16", "6", "10", "16"], ans: 3 },
+                { q: "변량 6, 8, 10, x의 평균이 8일 때, 이 자료의 분산(s²)은 얼마인가요?", opts: ["1.5", "2.0", "2.5", "4.0"], ans: 1 },
+                { q: "자료 2, 4, 6, 8의 분산이 5일 때, 각 값에 10을 더한 자료 12, 14, 16, 18의 분산은?", opts: ["5", "15", "25", "50"], ans: 0 },
+                { q: "6개 변량의 편차가 -3, -2, 1, 2, 3, x일 때, x의 값과 분산(s²)은?", opts: ["x = 0, 분산 = 4.5", "x = 0, 분산 = 5.0", "x = 1, 분산 = 4.5", "x = -1, 분산 = 6.0"], ans: 0 },
+                { q: "평균 50점, 표준편차 10점인 시험에서 60점을 받은 학생의 편차(x - x̄)는?", opts: ["-10점", "0점", "+10점", "+20점"], ans: 2 },
+                { q: "세 변량 x, y, z의 평균이 4, 분산이 3일 때, (x-4)² + (y-4)² + (z-4)² 의 값은?", opts: ["3", "6", "9", "12"], ans: 2 },
+                { q: "자료의 개수가 10개이고, 편차 제곱의 합이 250일 때 이 자료의 표준편차(s)는?", opts: ["5", "10", "25", "50"], ans: 0 },
+                { q: "변량 a, b, c, d의 평균이 5, 표준편차가 2일 때, (a-5)²+(b-5)²+(c-5)²+(d-5)² 의 값은?", opts: ["4", "8", "16", "20"], ans: 2 }
+            ]
+        };
+
+        function openMathQuizModal() {
+            if (mathQuizUsedCount >= maxMathQuizLimit) {
+                showToast("⚠️ 수학 찬스 모두 사용", "이번 경기(10발)의 수학 찬스(7회)를 모두 사용했습니다!");
+                return;
+            }
+            document.getElementById('quiz-modal').classList.remove('hidden');
+            const chanceText = document.getElementById('quiz-modal-chance-text');
+            if (chanceText) {
+                chanceText.textContent = `(남은 기회: ${maxMathQuizLimit - mathQuizUsedCount}/${maxMathQuizLimit})`;
+            }
+            selectQuizDifficulty('easy');
+        }
+
+        function closeMathQuizModal() {
+            document.getElementById('quiz-modal').classList.add('hidden');
+        }
+
+        function selectQuizDifficulty(diff) {
+            selectedDifficulty = diff;
+
+            const btnEasy = document.getElementById('btn-diff-easy');
+            const btnHard = document.getElementById('btn-diff-hard');
+
+            if (diff === 'easy') {
+                btnEasy.className = "p-3 rounded-xl border-2 border-sky-400 bg-sky-950/80 text-sky-200 text-left transition shadow-lg";
+                btnHard.className = "p-3 rounded-xl border border-rose-500/30 bg-rose-950/20 text-rose-400/60 text-left hover:bg-rose-900/30 transition opacity-70";
+            } else {
+                btnHard.className = "p-3 rounded-xl border-2 border-rose-400 bg-rose-950/80 text-rose-200 text-left transition shadow-lg";
+                btnEasy.className = "p-3 rounded-xl border border-sky-500/30 bg-sky-950/20 text-sky-400/60 text-left hover:bg-sky-900/30 transition opacity-70";
+            }
+
+            const pool = quizBank[diff];
+            const q = pool[Math.floor(Math.random() * pool.length)];
+
+            document.getElementById('quiz-question-box').innerHTML = `
+                <div class="text-[10px] uppercase font-bold tracking-wider ${diff === 'easy' ? 'text-sky-400' : 'text-rose-400'} mb-1">
+                    [${diff === 'easy' ? '🟢 보통 난이도 퀴즈 (+1 Pt)' : '🔥 고난도 퀴즈 (+4 Pts)'}]
+                </div>
+                <div>Q. ${q.q}</div>
+            `;
+
+            const container = document.getElementById('quiz-options-container');
+            container.innerHTML = '';
+
+            q.opts.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "p-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs text-slate-200 font-bold transition text-left";
+                btn.textContent = `${idx + 1}. ${opt}`;
+                btn.onclick = () => {
+                    mathQuizUsedCount++;
+                    updateMathChanceUI();
+
+                    if (idx === q.ans) {
+                        const earned = diff === 'easy' ? 1 : 4;
+                        availableStatPts += earned;
+                        playSound('bullseye');
+                        closeMathQuizModal();
+                        showToast(`🎉 정답입니다! +${earned} 스탯 포인트 획득!`, "스탯 훈련소에서 사수 스탯을 바로 강화하세요!");
+                        updateStatUI();
+                        openStatUpgradeModal();
+                    } else {
+                        playSound('hit');
+                        closeMathQuizModal();
+                        showToast("❌ 퀴즈 오답!", "정답을 맞히지 못했습니다. 일반 사격을 진행합니다!");
+                    }
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function updateMathChanceUI() {
+            const badge = document.getElementById('math-chance-badge');
+            const btnText = document.getElementById('math-chance-btn-text');
+            const remaining = maxMathQuizLimit - mathQuizUsedCount;
+
+            if (mathQuizUsedCount >= maxMathQuizLimit) {
+                if (badge) {
+                    badge.className = "bg-slate-700 text-slate-400 text-[9px] px-1.5 py-0.5 rounded-full font-sans";
+                    badge.textContent = "7회 기회 모두 사용";
+                }
+                if (btnText) {
+                    btnText.innerHTML = `도전 완료 <i class="fa-solid fa-check"></i>`;
+                }
+            } else {
+                if (badge) {
+                    badge.className = "bg-rose-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-sans";
+                    badge.textContent = `1경기당 최대 7회 도전 가능 (남은 기회: ${remaining}/${maxMathQuizLimit})`;
+                }
+                if (btnText) {
+                    btnText.innerHTML = `문제 풀기 <i class="fa-solid fa-arrow-right"></i>`;
+                }
+            }
+        }
+
+        function calculateTitle(total, stdDev) {
+            if (total < 75.0 && stdDev < 0.30) {
+                return "🤖 [영점 착오] 고장난 로봇 사수";
+            }
+
+            const hasXRing = currentShots.some(s => s.score >= 10.8);
+            const totalStats = playerStats.stddev + playerStats.wind + playerStats.steady + playerStats.outlier;
+
+            if (stdDev < 0.18 && total >= 102) return "🎯 [신궁] 올림픽 영웅";
+            if (stdDev < 0.22 && hasXRing && total >= 96) return "🎯 [X-RING 마스터] 정밀 가우시안";
+            if (stdDev < 0.25 && total >= 95) return "📐 [인간 컴퍼스] 영점 조율사";
+
+            if (mathQuizUsedCount >= 6 && stdDev < 0.35) return "🧠 [아인슈타인 사수] 수학 양궁 패왕";
+            if (mathQuizUsedCount >= 5) return "💡 [뇌섹 궁수] 학구파 사수";
+            if (mathQuizUsedCount >= 3 && stdDev < 0.55) return "📖 [성실한 수험생] 탄착군 연구원";
+
+            if (playerStats.outlier >= 15 && playerStats.steady >= 15) return "🛡️ [철벽 궁수] 오차 제로 마스터";
+            if (playerStats.wind >= 15) return "🌪️ [태풍의 눈] 바람의 지배자";
+            if (playerStats.stddev >= 15) return "🎯 [칼같은 탄착군] 표준편차 파괴자";
+            if (totalStats >= 40) return "💪 [베테랑 궁수] 올라운드 사수";
+
+            if (stdDev < 0.45 && total >= 95) return "🥇 [명사수] 칼같이 고른 탄착군";
+            if (stdDev < 0.60 && total >= 90) return "🏹 [우등생 궁수] 안정적인 정사수";
+            if (stdDev >= 0.85 && total >= 88) return "🎲 [기복의 마술사] 모 아니면 도";
+            if (stdDev >= 1.10) return "💣 [시한폭탄] 산포도 대폭발";
+            if (total >= 95 && stdDev >= 0.70) return "🔥 [대반전의 사수] 화력발산형 궁수";
+            if (total < 75) return "🐣 [병아리 궁수] 과녁을 향한 첫걸음";
+
+            return "🌟 [성장하는 궁수] 산포도 탐험가";
+        }
+
+        function showGameOverModal() {
+            const scores = currentShots.map(s => s.score);
+            const total = scores.reduce((a, b) => a + b, 0);
+            const mean = scores.length > 0 ? total / scores.length : 0;
+            const variance = scores.length > 0 ? scores.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / scores.length : 0;
+            const stdDev = Math.sqrt(variance);
+
+            document.getElementById('final-total-score').textContent = `${total.toFixed(1)}점`;
+            document.getElementById('final-mean').textContent = mean.toFixed(1);
+            document.getElementById('final-stddev').textContent = stdDev.toFixed(2);
+
+            const earnedTitle = calculateTitle(total, stdDev);
+            document.getElementById('final-title-badge').textContent = earnedTitle;
+
+            const badge = document.getElementById('final-grade-badge');
+            if (stdDev < 0.25 && total >= 95.0) {
+                badge.className = "px-3 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
+                badge.textContent = "🏆 SSS Class (올림픽 신기록 사수)";
+            } else if (stdDev < 0.50 && total >= 88.0) {
+                badge.className = "px-3 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40";
+                badge.textContent = "🥇 S Class (안정적 집탄 사수)";
+            } else {
+                badge.className = "px-3 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40";
+                badge.textContent = "🥉 C Class (기복 심한 사수)";
+            }
+
+            document.getElementById('gameover-modal').classList.remove('hidden');
+        }
+
+        async function saveMatchRecord() {
+            const input = document.getElementById('input-player-name');
+            const name = input.value.trim() || '익명 사수';
+
+            const scores = currentShots.map(s => s.score);
+            const total = scores.reduce((a, b) => a + b, 0);
+            const mean = scores.length > 0 ? total / scores.length : 0;
+            const variance = scores.length > 0 ? scores.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / scores.length : 0;
+            const stdDev = Math.sqrt(variance);
+
+            let grade = 'C';
+            if (stdDev < 0.25 && total >= 95.0) grade = 'SSS';
+            else if (stdDev < 0.50 && total >= 88.0) grade = 'S';
+
+            const earnedTitle = calculateTitle(total, stdDev);
+
+            const newRecord = {
+                name,
+                title: earnedTitle,
+                total: parseFloat(total.toFixed(1)),
+                stdDev: parseFloat(stdDev.toFixed(2)),
+                grade,
+                date: new Date().toLocaleDateString('ko-KR')
+            };
+
+            const btnSave = document.getElementById('btn-save-record');
+            btnSave.disabled = true;
+            btnSave.textContent = "구글 시트 전송 중...";
+
+            try {
+                // Send record to Google Apps Script API
+                await fetch(GAS_API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newRecord)
+                });
+                showToast("☁️ 구글 시트 등록 완료!", "실시간 학급 명예의 전당에 기록되었습니다!");
+            } catch (err) {
+                console.warn("GAS API POST Error:", err);
+                // Fallback to localStorage
+                let board = [];
+                try { board = JSON.parse(localStorage.getItem('dispersion_archery_hof') || '[]'); } catch (e) {}
+                board.push(newRecord);
+                board.sort((a, b) => a.stdDev !== b.stdDev ? a.stdDev - b.stdDev : b.total - a.total);
+                localStorage.setItem('dispersion_archery_hof', JSON.stringify(board.slice(0, 10)));
+            }
+
+            btnSave.disabled = false;
+            btnSave.textContent = "명예의 전당 등록 & 기록 저장";
+            document.getElementById('gameover-modal').classList.add('hidden');
+            openLeaderboardModal();
+        }
+
+        async function openLeaderboardModal() {
+            const tbody = document.getElementById('leaderboard-table-body');
+            tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-amber-300 font-sans text-xs flex items-center justify-center gap-2"><i class="fa-solid fa-spinner animate-spin"></i> 구글 시트에서 실시간 학급 순위를 불러오는 중입니다...</td></tr>`;
+
+            document.getElementById('leaderboard-modal').classList.remove('hidden');
+
+            let board = [];
+            try {
+                const res = await fetch(GAS_API_URL);
+                if (res.ok) {
+                    board = await res.json();
+                } else {
+                    throw new Error("HTTP error " + res.status);
+                }
+            } catch (err) {
+                console.warn("GAS API GET Error, fallback to localStorage:", err);
+                try {
+                    board = JSON.parse(localStorage.getItem('dispersion_archery_hof') || '[]');
+                } catch (e) { board = []; }
+            }
+
+            if (!Array.isArray(board) || board.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500 font-sans text-xs">등록된 기록이 없습니다. 10발 경기를 완수하고 첫 명예의 전당 사수가 되어보세요!</td></tr>`;
+            } else {
+                let html = '';
+                board.forEach((rec, idx) => {
+                    const rankBadge = idx === 0 ? '🥇 1위' : idx === 1 ? '🥈 2위' : idx === 2 ? '🥉 3위' : `${idx + 1}위`;
+                    const gradeColor = rec.grade === 'SSS' ? 'text-emerald-400 bg-emerald-950/60 border-emerald-500/40' : rec.grade === 'S' ? 'text-sky-400 bg-sky-950/60 border-sky-500/40' : 'text-slate-400 bg-slate-900 border-slate-700';
+                    const titleText = rec.title || '🏹 [수련생 궁수]';
+                    html += `
+                        <tr class="hover:bg-slate-800/40 transition">
+                            <td class="p-2.5 font-bold text-amber-300">${rankBadge}</td>
+                            <td class="p-2.5 font-bold text-slate-200">${rec.name}</td>
+                            <td class="p-2.5 text-amber-300/90 font-bold text-[11px]">${titleText}</td>
+                            <td class="p-2.5 text-amber-400 font-bold">${parseFloat(rec.total).toFixed(1)}점</td>
+                            <td class="p-2.5 text-emerald-400 font-bold">${parseFloat(rec.stdDev).toFixed(2)}</td>
+                            <td class="p-2.5"><span class="px-2 py-0.5 rounded text-[10px] font-black border ${gradeColor}">${rec.grade} Class</span></td>
+                        </tr>
+                    `;
+                });
+                tbody.innerHTML = html;
+            }
+        }
+
+        function closeLeaderboardModal() {
+            document.getElementById('leaderboard-modal').classList.add('hidden');
+        }
+
+        function resetMatch() {
+            currentShots = [];
+            currentArrowIndex = 0;
+            maxArrows = 10;
+            mathQuizUsedCount = 0;
+
+            updateMathChanceUI();
+            randomizeWind();
+            initBirds();
+            updateHUD();
+            drawScene();
+        }
+
+        function spawnParticles(x, y, color) {
+            for (let i = 0; i < 16; i++) {
+                particles.push({
+                    x: x, y: y,
+                    vx: (Math.random() - 0.5) * 8 * window.devicePixelRatio,
+                    vy: (Math.random() - 0.5) * 8 * window.devicePixelRatio,
+                    size: Math.random() * 5 * window.devicePixelRatio + 2,
+                    color: color, alpha: 1.0
+                });
+            }
+        }
+
+        function showToast(title, sub) {
+            const toast = document.getElementById('bullseye-toast');
+            toast.querySelector('.title-font').textContent = title;
+            document.getElementById('toast-subtext').textContent = sub;
+            toast.classList.remove('opacity-0', 'scale-50');
+            toast.classList.add('opacity-100', 'scale-100');
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'scale-100');
+                toast.classList.add('opacity-0', 'scale-50');
+            }, 1400);
+        }
+
+        function randomGaussian(mean = 0, stdev = 1) {
+            const u1 = 1 - Math.random();
+            const u2 = 1 - Math.random();
+            const randStdNormal = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+            return mean + randStdNormal * stdev;
+        }
+
+        function setupInputListeners() {
+            function getCoords(e) {
+                const rect = canvas.getBoundingClientRect();
+                const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
+                return {
+                    x: (clientX - rect.left) * (canvas.width / rect.width),
+                    y: (clientY - rect.top) * (canvas.height / rect.height)
+                };
+            }
+
+            function startDrag(e) {
+                if (currentArrowIndex >= maxArrows || flyingArrow) return;
+                const pos = getCoords(e);
+                if (pos.y > canvas.height * 0.4) {
+                    isDragging = true;
+                    dragStart = pos;
+                    dragCurrent = pos;
+                    dragStartTime = Date.now();
+                    playSound('pull');
+                    document.getElementById('drag-guide').style.display = 'none';
+                    document.getElementById('heartbeat-widget').classList.remove('hidden');
+                }
+            }
+
+            function moveDrag(e) {
+                if (!isDragging) return;
+                if (e.cancelable) e.preventDefault();
+                dragCurrent = getCoords(e);
+            }
+
+            function endDrag() {
+                if (!isDragging) return;
+                isDragging = false;
+                shootArrow();
+            }
+
+            canvas.addEventListener('mousedown', startDrag);
+            window.addEventListener('mousemove', moveDrag);
+            window.addEventListener('mouseup', endDrag);
+
+            canvas.addEventListener('touchstart', startDrag, { passive: false });
+            window.addEventListener('touchmove', moveDrag, { passive: false });
+            window.addEventListener('touchend', endDrag);
+        }
+
+        window.onload = function() {
+            setupInputListeners();
+            resetMatch();
+
+            function animLoop() {
+                drawScene();
+                requestAnimationFrame(animLoop);
+            }
+            animLoop();
+        };
+    </script>
+</body>
+</html>
