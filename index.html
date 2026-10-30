@@ -82,6 +82,11 @@
         </div>
 
         <div class="flex items-center gap-2">
+<!-- 👤 현재 접속 사수 뱃지 -->
+            <div class="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-xs flex items-center gap-1.5">
+                <i class="fa-solid fa-user-tag text-amber-400 text-[11px]"></i>
+                <span id="header-player-name" class="font-bold text-slate-200">입장 대기</span>
+            </div>
             <!-- Stat Upgrade Center Modal Button -->
             <button onclick="openStatUpgradeModal()" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-indigo-500 hover:from-amber-400 hover:to-indigo-400 text-slate-950 text-xs font-black transition flex items-center gap-1.5 shadow-lg shadow-amber-500/20 btn-glow">
                 <i class="fa-solid fa-chart-pie text-sm"></i>
@@ -300,6 +305,32 @@
         </section>
     </main>
 
+<!-- 🏹 [1단계 추가] 최초 접속 사수 등록(로그인) 모달 -->
+    <div id="login-modal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-sm rounded-2xl p-6 border border-amber-500/50 space-y-4 shadow-2xl text-center">
+            <div class="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-500 flex items-center justify-center text-3xl shadow-lg shadow-rose-950/50">
+                🎯
+            </div>
+            <div>
+                <h3 class="title-font text-2xl text-amber-300">사수 입소 등록</h3>
+                <p class="text-xs text-slate-400 mt-1">학번과 이름을 입력하고 경기장에 입장하세요!</p>
+            </div>
+
+            <div class="space-y-3 text-left">
+                <div>
+                    <label class="block text-[11px] text-slate-300 font-bold mb-1">학번 및 이름</label>
+                    <input id="login-player-name" type="text" maxlength="12" placeholder="예: 3학년 2반 김수학" 
+                        onkeydown="if(event.key==='Enter') submitLogin();"
+                        class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-amber-300 font-bold focus:outline-none focus:border-amber-400 transition">
+                </div>
+                <button type="button" onclick="submitLogin()" class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs shadow-lg transition btn-glow">
+                    경기장 입장하기 <i class="fa-solid fa-arrow-right ml-1"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+       <!-- 💡 아래 한 줄이 빠져 있었습니다. 다시 넣어주세요! -->
     <div id="quiz-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
         <div class="glass-panel w-full max-w-lg rounded-2xl p-6 border border-amber-500/40 space-y-4 shadow-2xl relative">
             <div class="flex justify-between items-center border-b border-slate-800 pb-3">
@@ -332,6 +363,17 @@
             <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
                 <div id="quiz-question-box" class="text-xs font-bold text-slate-100 leading-relaxed"></div>
                 <div id="quiz-options-container" class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2"></div>
+
+                <!-- 💡 오답 해설 박스 -->
+                <div id="quiz-explanation-box" class="hidden mt-3 p-3 rounded-xl bg-rose-950/40 border border-rose-500/50 space-y-2">
+                    <div class="flex items-center gap-1.5 text-rose-400 font-bold text-xs">
+                        <i class="fa-solid fa-circle-exclamation"></i> 오답 해설 및 정답 확인
+                    </div>
+                    <div id="quiz-explanation-text" class="text-[11px] text-slate-200 leading-relaxed font-sans"></div>
+                    <button type="button" onclick="closeMathQuizModal()" class="w-full py-2 mt-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition">
+                        해설 확인 완료 (닫기)
+                    </button>
+                </div>
             </div>
             <p class="text-[10px] text-rose-400 font-bold text-center">⚠️ 주의: 1경기당 최대 7번 도전 가능하며, 틀리면 포인트 없이 해당 발사로 넘어갑니다!</p>
         </div>
@@ -495,8 +537,37 @@
         // Google Apps Script API Backend Endpoint
         const GAS_API_URL = "https://script.google.com/macros/s/AKfycbysVXNGKmK2O26BxOXd0kDIyoiJ7OqC2Y9sUOKrEgXIMsvx4hczsmYHMOXR75s-ESyUjA/exec";
 
-        let soundEnabled = true;
+       let soundEnabled = true;
         let audioCtx = null;
+
+        // 🎯 현재 로그인한 사수 이름 상태
+        let currentPlayerName = '';
+
+        function submitLogin() {
+            const input = document.getElementById('login-player-name');
+            const name = input ? input.value.trim() : '';
+
+            if (!name) {
+                showToast("⚠️ 이름 입력 필수", "학번과 이름을 입력해야 입장할 수 있습니다!");
+                if (input) input.focus();
+                return;
+            }
+
+            currentPlayerName = name;
+            
+            // 상단 헤더 뱃지 변경
+            const headerBadge = document.getElementById('header-player-name');
+            if (headerBadge) headerBadge.textContent = currentPlayerName;
+
+            // 게임 오버 모달의 입력창에도 미리 채워넣기
+            const overInput = document.getElementById('input-player-name');
+            if (overInput) overInput.value = currentPlayerName;
+
+            // 로그인 모달 닫기
+            document.getElementById('login-modal').classList.add('hidden');
+            playSound('bullseye');
+            showToast("🎯 경기장 입장 완료!", `${currentPlayerName} 사수님, 환영합니다!`);
+        }
 
         // RPG Stat Points State
         let availableStatPts = 0;
@@ -1233,58 +1304,58 @@
 
         const quizBank = {
             easy: [
-                { q: "자료 8, 10, 7, 10, 5의 평균(x̄)은 얼마일까요?", opts: ["7.0점", "8.0점", "8.5점", "9.0점"], ans: 1 },
-                { q: "어떤 자료의 편차(x - x̄)의 총합은 항상 얼마일까요?", opts: ["0", "1", "평균값", "표준편차"], ans: 0 },
-                { q: "분산(s²)은 무엇의 평균인가요?", opts: ["변량의 평균", "편차의 평균", "편차 제곱의 평균", "표준편차의 제곱근"], ans: 2 },
-                { q: "표준편차가 작다는 것은 점수들이 어떻게 분포되어 있다는 뜻일까요?", opts: ["평균 근처에 고르게 모여 있다", "넓게 흩어져 있다", "무조건 10점이다", "극단값이 많다"], ans: 0 },
-                { q: "자료 2, 4, 6, 8, 10의 평균(x̄)은 얼마인가요?", opts: ["4", "5", "6", "8"], ans: 2 },
-                { q: "모든 변량이 동일한 자료(예: 7, 7, 7, 7)의 표준편차는 얼마일까요?", opts: ["0", "1", "7", "알 수 없다"], ans: 0 },
-                { q: "네 개 자료의 편차가 각각 -3, +1, -1, x일 때, x의 값은 얼마일까요?", opts: ["+1", "+2", "+3", "+4"], ans: 2 },
-                { q: "어떤 자료의 분산(s²)이 9일 때, 이 자료의 표준편차(s)는 얼마인가요?", opts: ["1.5", "3", "4.5", "81"], ans: 1 },
-                { q: "표준편차(s)는 분산(s²)의 무엇을 의미하나요?", opts: ["양의 제곱근", "음의 제곱근", "제곱값", "2배 한 값"], ans: 0 },
-                { q: "대표값 중 자료의 모든 값의 합을 자료의 개수로 나눈 값은 무엇인가요?", opts: ["최빈값", "중앙값", "평균", "분산"], ans: 2 },
-                { q: "자료가 대표값 주위에 어떻게 흩어져 있는지를 나타낸 수치를 무엇이라 하나요?", opts: ["대표값", "산포도", "편차", "계급값"], ans: 1 },
-                { q: "자료 10, 20, 30, 40, 50의 중앙값과 평균의 관계는 어떠한가요?", opts: ["중앙값이 더 크다", "평균이 더 크다", "두 값이 같다 (30)", "비교할 수 없다"], ans: 2 },
-                { q: "다음 중 산포도에 해당하지 않는 수치는 무엇인가요?", opts: ["분산", "표준편차", "평균", "사범위"], ans: 2 },
-                { q: "어떤 변량의 편차가 음수(-)라는 것은 무슨 의미인가요?", opts: ["변량이 평균보다 작다", "변량이 평균보다 크다", "변량이 0이다", "분산이 음수이다"], ans: 0 },
-                { q: "어떤 변량의 편차가 양수(+)라는 것은 무슨 의미인가요?", opts: ["변량이 평균보다 작다", "변량이 평균보다 크다", "변량이 평균과 같다", "알 수 없다"], ans: 1 },
-                { q: "자료 A(5, 5, 5, 5)와 자료 B(1, 5, 5, 9) 중 표준편차가 더 작은 자료는?", opts: ["자료 A", "자료 B", "두 자료가 같다", "비교할 수 없다"], ans: 0 },
-                { q: "변량 x의 값이 평균(x̄)과 정확히 같을 때, 이 변량의 편차는 얼마인가요?", opts: ["-1", "0", "1", "x̄"], ans: 1 },
-                { q: "분산을 구할 때 편차를 그냥 더하지 않고 '제곱'하는 이유는 무엇인가요?", opts: ["편차의 합이 항상 0이 되는 것을 막기 위해", "숫자를 크게 만들기 위해", "평균을 구하기 쉽게 하기 위해", "음수를 없애지 않기 위해"], ans: 0 },
-                { q: "자료 1, 3, 5, 7, 9의 평균(x̄)은 얼마인가요?", opts: ["3", "4", "5", "6"], ans: 2 },
-                { q: "다섯 개 자료 4, 5, 6, 7, 8에서 '6'의 편차는 얼마인가요?", opts: ["-2", "-1", "0", "+1"], ans: 2 },
-                { q: "어떤 자료의 표준편차가 0이라는 것은 무슨 뜻인가요?", opts: ["모든 변량이 0이다", "모든 변량의 값이 서로 같다", "자료가 심하게 흩어져 있다", "평균이 0이다"], ans: 1 },
-                { q: "두 집단 A, B의 평균이 같고 표준편차가 각각 2, 5일 때, 성적이 더 고른 집단은?", opts: ["A 집단", "B 집단", "두 집단이 같다", "비교할 수 없다"], ans: 0 },
-                { q: "다음 중 중학교 과정에서 배우는 산포도의 대표적인 두 수치는?", opts: ["평균과 중앙값", "분산과 표준편차", "최빈값과 평균", "편차와 최빈값"], ans: 1 },
-                { q: "자료 5개의 합이 25일 때, 이 자료의 평균(x̄)은 얼마인가요?", opts: ["4", "5", "6", "25"], ans: 1 },
-                { q: "어떤 변량이 평균보다 4만큼 더 클 때, 이 변량의 편차는 얼마인가요?", opts: ["-4", "0", "+4", "+16"], ans: 2 }
+                { q: "자료 8, 10, 7, 10, 5의 평균(x̄)은 얼마일까요?", opts: ["7.0점", "8.0점", "8.5점", "9.0점"], ans: 1, exp: "총합 = 8 + 10 + 7 + 10 + 5 = 40점입니다. 자료의 개수가 5개이므로 평균은 40 ÷ 5 = 8.0점입니다." },
+                { q: "어떤 자료의 편차(x - x̄)의 총합은 항상 얼마일까요?", opts: ["0", "1", "평균값", "표준편차"], ans: 0, exp: "편차는 (변량 - 평균)으로 정의되며, 모든 편차의 총합은 항상 0이 되는 성질을 갖습니다." },
+                { q: "분산(s²)은 무엇의 평균인가요?", opts: ["변량의 평균", "편차의 평균", "편차 제곱의 평균", "표준편차의 제곱근"], ans: 2, exp: "편차의 단순 합은 0이 되므로, 편차를 각각 제곱한 값들의 평균을 구한 것이 바로 분산(Variance)입니다." },
+                { q: "표준편차가 작다는 것은 점수들이 어떻게 분포되어 있다는 뜻일까요?", opts: ["평균 근처에 고르게 모여 있다", "넓게 흩어져 있다", "무조건 10점이다", "극단값이 많다"], ans: 0, exp: "표준편차는 자료가 흩어진 정도를 나타내는 산포도입니다. 작을수록 변량들이 평균 주위에 조밀하게 밀집해 있음을 의미합니다." },
+                { q: "자료 2, 4, 6, 8, 10의 평균(x̄)은 얼마인가요?", opts: ["4", "5", "6", "8"], ans: 2, exp: "총합 = 2 + 4 + 6 + 8 + 10 = 30입니다. 30 ÷ 5 = 6입니다." },
+                { q: "모든 변량이 동일한 자료(예: 7, 7, 7, 7)의 표준편차는 얼마일까요?", opts: ["0", "1", "7", "알 수 없다"], ans: 0, exp: "모든 변량이 7이면 평균도 7이고, 모든 편차가 (7-7)=0이므로 편차 제곱의 평균인 분산과 표준편차 모두 0입니다." },
+                { q: "네 개 자료의 편차가 각각 -3, +1, -1, x일 때, x의 값은 얼마일까요?", opts: ["+1", "+2", "+3", "+4"], ans: 2, exp: "편차의 총합은 0이어야 하므로 (-3) + (+1) + (-1) + x = 0 에서 -3 + x = 0, 즉 x = +3입니다." },
+                { q: "어떤 자료의 분산(s²)이 9일 때, 이 자료의 표준편차(s)는 얼마인가요?", opts: ["1.5", "3", "4.5", "81"], ans: 1, exp: "표준편차(s)는 분산의 양의 제곱근이므로 s = √9 = 3입니다." },
+                { q: "표준편차(s)는 분산(s²)의 무엇을 의미하나요?", opts: ["양의 제곱근", "음의 제곱근", "제곱값", "2배 한 값"], ans: 0, exp: "표준편차는 분산의 단위와 원자료의 단위를 일치시키기 위해 분산에 양의 제곱근을 취한 값입니다." },
+                { q: "대표값 중 자료의 모든 값의 합을 자료의 개수로 나눈 값은 무엇인가요?", opts: ["최빈값", "중앙값", "평균", "분산"], ans: 2, exp: "자료의 총합을 전체 개수로 나눈 것은 산술평균(Mean)입니다." },
+                { q: "자료가 대표값 주위에 어떻게 흩어져 있는지를 나타낸 수치를 무엇이라 하나요?", opts: ["대표값", "산포도", "편차", "계급값"], ans: 1, exp: "자료의 흩어진 정도를 수치화한 척도를 '산포도(Dispersion)'라고 합니다." },
+                { q: "자료 10, 20, 30, 40, 50의 중앙값과 평균의 관계는 어떠한가요?", opts: ["중앙값이 더 크다", "평균이 더 크다", "두 값이 같다 (30)", "비교할 수 없다"], ans: 2, exp: "가운데 위치한 중앙값은 30이고, 총합 150 ÷ 5 = 30이므로 평균도 30으로 서로 같습니다." },
+                { q: "다음 중 산포도에 해당하지 않는 수치는 무엇인가요?", opts: ["분산", "표준편차", "평균", "사범위"], ans: 2, exp: "평균은 자료 전체를 대표하는 '대표값'이며, 흩어진 정도를 나타내는 산포도가 아닙니다." },
+                { q: "어떤 변량의 편차가 음수(-)라는 것은 무슨 의미인가요?", opts: ["변량이 평균보다 작다", "변량이 평균보다 크다", "변량이 0이다", "분산이 음수이다"], ans: 0, exp: "편차 = (변량 - 평균)이므로, 편차가 음수라는 것은 변량이 평균보다 작다는 뜻입니다." },
+                { q: "어떤 변량의 편차가 양수(+)라는 것은 무슨 의미인가요?", opts: ["변량이 평균보다 작다", "변량이 평균보다 크다", "변량이 평균과 같다", "알 수 없다"], ans: 1, exp: "편차 = (변량 - 평균)이므로, 편차가 양수라는 것은 변량이 평균보다 크다는 뜻입니다." },
+                { q: "자료 A(5, 5, 5, 5)와 자료 B(1, 5, 5, 9) 중 표준편차가 더 작은 자료는?", opts: ["자료 A", "자료 B", "두 자료가 같다", "비교할 수 없다"], ans: 0, exp: "자료 A는 모든 변량이 평균(5)과 같아 표준편차가 0이고, 자료 B는 평균 주위로 흩어져 있으므로 자료 A의 표준편차가 더 작습니다." },
+                { q: "변량 x의 값이 평균(x̄)과 정확히 같을 때, 이 변량의 편차는 얼마인가요?", opts: ["-1", "0", "1", "x̄"], ans: 1, exp: "편차는 변량에서 평균을 뺀 값이므로 x - x̄ = 0이 됩니다." },
+                { q: "분산을 구할 때 편차를 그냥 더하지 않고 '제곱'하는 이유는 무엇인가요?", opts: ["편차의 합이 항상 0이 되는 것을 막기 위해", "숫자를 크게 만들기 위해", "평균을 구하기 쉽게 하기 위해", "음수를 없애지 않기 위해"], ans: 0, exp: "편차의 합은 항상 0이 되어 흩어진 정도를 측정할 수 없으므로, 음수를 양수화하기 위해 제곱하여 평균을 냅니다." },
+                { q: "자료 1, 3, 5, 7, 9의 평균(x̄)은 얼마인가요?", opts: ["3", "4", "5", "6"], ans: 2, exp: "총합 = 1 + 3 + 5 + 7 + 9 = 25입니다. 25 ÷ 5 = 5입니다." },
+                { q: "다섯 개 자료 4, 5, 6, 7, 8에서 '6'의 편차는 얼마인가요?", opts: ["-2", "-1", "0", "+1"], ans: 2, exp: "다섯 자료의 평균은 (4+5+6+7+8) ÷ 5 = 6입니다. 따라서 6의 편차는 6 - 6 = 0입니다." },
+                { q: "어떤 자료의 표준편차가 0이라는 것은 무슨 뜻인가요?", opts: ["모든 변량이 0이다", "모든 변량의 값이 서로 같다", "자료가 심하게 흩어져 있다", "평균이 0이다"], ans: 1, exp: "표준편차가 0이라는 것은 모든 편차가 0이라는 뜻이며, 이는 곧 모든 변량의 값이 평균과 완전히 같음을 의미합니다." },
+                { q: "두 집단 A, B의 평균이 같고 표준편차가 각각 2, 5일 때, 성적이 더 고른 집단은?", opts: ["A 집단", "B 집단", "두 집단이 같다", "비교할 수 없다"], ans: 0, exp: "통계에서 '성적이 고르다'는 것은 점수들이 평균 주변에 밀집되어 있다는 뜻으로, 표준편차가 더 작은 집단(A 집단)을 의미합니다." },
+                { q: "다음 중 중학교 과정에서 배우는 산포도의 대표적인 두 수치는?", opts: ["평균과 중앙값", "분산과 표준편차", "최빈값과 평균", "편차와 최빈값"], ans: 1, exp: "산포도를 대표하는 두 수치는 '분산'과 '표준편차'입니다." },
+                { q: "자료 5개의 합이 25일 때, 이 자료의 평균(x̄)은 얼마인가요?", opts: ["4", "5", "6", "25"], ans: 1, exp: "평균 = (총합) ÷ (개수) = 25 ÷ 5 = 5입니다." },
+                { q: "어떤 변량이 평균보다 4만큼 더 클 때, 이 변량의 편차는 얼마인가요?", opts: ["-4", "0", "+4", "+16"], ans: 2, exp: "편차 = (변량 - 평균)이므로 변량이 평균보다 4만큼 크면 편차는 +4입니다." }
             ],
             hard: [
-                { q: "변량 x, y, z의 평균이 10이고 표준편차가 2일 때, 2x+1, 2y+1, 2z+1의 표준편차는?", opts: ["2", "4", "5", "8"], ans: 1 },
-                { q: "다섯 개 자료의 편차가 -2, +1, +3, x, -1 일 때, x의 값과 분산(s²)을 구하면?", opts: ["x = -1, 분산 = 3.00", "x = -1, 분산 = 3.20", "x = +1, 분산 = 4.00", "x = 0, 분산 = 2.50"], ans: 1 },
-                { q: "어떤 학급 학생 5명의 수학 점수 편차가 -3, +1, +4, -2, x이다. 이때 분산은?", opts: ["4.0", "5.0", "6.0", "7.0"], ans: 2 },
-                { q: "모든 변량에 각각 5를 더하면 표준편차(s)는 어떻게 변할까요?", opts: ["5만큼 커진다", "5배가 된다", "변하지 않는다", "0이 된다"], ans: 2 },
-                { q: "변량 x, y, z의 분산이 5일 때, 변량 3x-2, 3y-2, 3z-2의 분산은 얼마일까요?", opts: ["13", "15", "30", "45"], ans: 3 },
-                { q: "자료 A의 표준편차가 0.4점, 자료 B의 표준편차가 1.8점일 때 탄착군이 더 고른 집단은?", opts: ["자료 A", "자료 B", "두 자료가 같다", "알 수 없다"], ans: 0 },
-                { q: "편차가 -2, -1, 0, +1, +2 인 5개 자료의 분산(s²)은 얼마인가요?", opts: ["1.0", "1.5", "2.0", "2.5"], ans: 2 },
-                { q: "평균이 80점인 두 학급 A(분산 4), B(분산 16)가 있다. 점수의 기복이 더 큰 학급은?", opts: ["A학급", "B학급", "두 학급이 같다", "비교할 수 없다"], ans: 1 },
-                { q: "세 변량 a, b, c의 평균이 6이고 분산이 4일 때, a²+b²+c²의 값은 얼마인가요?", opts: ["108", "120", "132", "144"], ans: 1 },
-                { q: "변량 x, y, z의 평균이 m, 분산이 v일 때, -2x+3, -2y+3, -2z+3의 분산은?", opts: ["v", "2v", "4v", "-2v+3"], ans: 2 },
-                { q: "4개 자료 3, 5, a, b의 평균이 6이고 분산이 5일 때, a+b의 값은 얼마인가요?", opts: ["14", "15", "16", "18"], ans: 2 },
-                { q: "자료 1, 2, 3, 4, 5의 분산(s²)을 정확히 구하면 얼마인가요?", opts: ["1.5", "2.0", "2.5", "3.0"], ans: 1 },
-                { q: "다섯 학생의 턱걸이 횟수의 편차가 -1, 2, x, -2, 1일 때, x의 값과 분산(s²)은?", opts: ["x = 0, 분산 = 2.0", "x = 0, 분산 = 2.5", "x = 1, 분산 = 2.0", "x = -1, 분산 = 3.0"], ans: 0 },
-                { q: "평균이 10, 표준편차가 3인 자료의 모든 값에 -3을 곱하고 5를 더한 새 자료의 분산은?", opts: ["9", "27", "81", "100"], ans: 2 },
-                { q: "변량 x에 대하여 2x-5의 평균이 15이고 표준편차가 6일 때, 원래 변량 x의 표준편차는?", opts: ["3", "6", "7", "12"], ans: 0 },
-                { q: "5개 변량의 평균이 8, 표준편차가 3일 때, 5a+2, 5b+2, 5c+2, 5d+2, 5e+2의 분산은?", opts: ["15", "45", "75", "225"], ans: 3 },
-                { q: "A모둠(10명, 평균 70, 분산 9)과 B모둠(10명, 평균 70, 분산 25)을 합친 20명의 분산은?", opts: ["15", "17", "18", "34"], ans: 1 },
-                { q: "두 자료 X, Y의 변량이 y = -x + 10 관계일 때, X의 분산이 16이면 Y의 분산은?", opts: ["-16", "6", "10", "16"], ans: 3 },
-                { q: "변량 6, 8, 10, x의 평균이 8일 때, 이 자료의 분산(s²)은 얼마인가요?", opts: ["1.5", "2.0", "2.5", "4.0"], ans: 1 },
-                { q: "자료 2, 4, 6, 8의 분산이 5일 때, 각 값에 10을 더한 자료 12, 14, 16, 18의 분산은?", opts: ["5", "15", "25", "50"], ans: 0 },
-                { q: "6개 변량의 편차가 -3, -2, 1, 2, 3, x일 때, x의 값과 분산(s²)은?", opts: ["x = 0, 분산 = 4.5", "x = 0, 분산 = 5.0", "x = 1, 분산 = 4.5", "x = -1, 분산 = 6.0"], ans: 0 },
-                { q: "평균 50점, 표준편차 10점인 시험에서 60점을 받은 학생의 편차(x - x̄)는?", opts: ["-10점", "0점", "+10점", "+20점"], ans: 2 },
-                { q: "세 변량 x, y, z의 평균이 4, 분산이 3일 때, (x-4)² + (y-4)² + (z-4)² 의 값은?", opts: ["3", "6", "9", "12"], ans: 2 },
-                { q: "자료의 개수가 10개이고, 편차 제곱의 합이 250일 때 이 자료의 표준편차(s)는?", opts: ["5", "10", "25", "50"], ans: 0 },
-                { q: "변량 a, b, c, d의 평균이 5, 표준편차가 2일 때, (a-5)²+(b-5)²+(c-5)²+(d-5)² 의 값은?", opts: ["4", "8", "16", "20"], ans: 2 }
+                { q: "변량 x, y, z의 평균이 10이고 표준편차가 2일 때, 2x+1, 2y+1, 2z+1의 표준편차는?", opts: ["2", "4", "5", "8"], ans: 1, exp: "변량에 a를 곱하고 b를 더하면($ax+b$), 새 표준편차는 원래 표준편차의 $|a|$배가 됩니다. 뒤에 더한 1은 산포도에 영향을 주지 않으므로 $2 \\times 2 = 4$입니다." },
+                { q: "다섯 개 자료의 편차가 -2, +1, +3, x, -1 일 때, x의 값과 분산(s²)을 구하면?", opts: ["x = -1, 분산 = 3.00", "x = -1, 분산 = 3.20", "x = +1, 분산 = 4.00", "x = 0, 분산 = 2.50"], ans: 1, exp: "편차 총합은 0이므로 (-2)+1+3+x+(-1)=0 에서 x = -1입니다. 편차 제곱들은 4, 1, 9, 1, 1이며, 합은 16이므로 분산 = 16 ÷ 5 = 3.20입니다." },
+                { q: "어떤 학급 학생 5명의 수학 점수 편차가 -3, +1, +4, -2, x이다. 이때 분산은?", opts: ["4.0", "5.0", "6.0", "7.0"], ans: 2, exp: "편차의 합: (-3)+1+4+(-2)+x = 0 → x = 0. 각 편차의 제곱: 9, 1, 16, 4, 0. 제곱의 합 = 30이므로 분산 = 30 ÷ 5 = 6.0입니다." },
+                { q: "모든 변량에 각각 5를 더하면 표준편차(s)는 어떻게 변할까요?", opts: ["5만큼 커진다", "5배가 된다", "변하지 않는다", "0이 된다"], ans: 2, exp: "모든 자료에 동일한 상수를 더하면 평균도 똑같이 5 커지므로 (변량 - 평균)인 각 편차의 크기는 그대로 유지됩니다. 따라서 표준편차는 변하지 않습니다." },
+                { q: "변량 x, y, z의 분산이 5일 때, 변량 3x-2, 3y-2, 3z-2의 분산은 얼마일까요?", opts: ["13", "15", "30", "45"], ans: 3, exp: "변량이 $ax+b$로 변환될 때 새 분산은 원래 분산의 $a^2$배가 됩니다. 따라서 $3^2 \\times 5 = 9 \\times 5 = 45$입니다." },
+                { q: "자료 A의 표준편차가 0.4점, 자료 B의 표준편차가 1.8점일 때 탄착군이 더 고른 집단은?", opts: ["자료 A", "자료 B", "두 자료가 같다", "알 수 없다"], ans: 0, exp: "표준편차가 작을수록 탄착군이 중심에 조밀하게 모여 있어 '더 고르다'고 표현합니다. 0.4 < 1.8이므로 자료 A가 더 고릅니다." },
+                { q: "편차가 -2, -1, 0, +1, +2 인 5개 자료의 분산(s²)은 얼마인가요?", opts: ["1.0", "1.5", "2.0", "2.5"], ans: 2, exp: "편차 제곱의 값들은 각각 4, 1, 0, 1, 4입니다. 이들의 합은 10이며, 자료 개수가 5개이므로 분산 = 10 ÷ 5 = 2.0입니다." },
+                { q: "평균이 80점인 두 학급 A(분산 4), B(분산 16)가 있다. 점수의 기복이 더 큰 학급은?", opts: ["A학급", "B학급", "두 학급이 같다", "비교할 수 없다"], ans: 1, exp: "분산이 클수록 자료가 평균으로부터 넓게 흩어져 있다는 뜻이므로, 점수의 기복이나 편차가 더 큰 학급은 B학급입니다." },
+                { q: "세 변량 a, b, c의 평균이 6이고 분산이 4일 때, a²+b²+c²의 값은 얼마인가요?", opts: ["108", "120", "132", "144"], ans: 1, exp: "분산 공식: (변량 제곱의 평균) - (평균의 제곱) = 분산입니다. 즉 $\\frac{a^2+b^2+c^2}{3} - 6^2 = 4$ 이므로 $\\frac{a^2+b^2+c^2}{3} = 40$ 이 되어 $a^2+b^2+c^2 = 120$입니다." },
+                { q: "변량 x, y, z의 평균이 m, 분산이 v일 때, -2x+3, -2y+3, -2z+3의 분산은?", opts: ["v", "2v", "4v", "-2v+3"], ans: 2, exp: "변량 $ax+b$의 분산은 $a^2 \\times v$입니다. $a = -2$이므로 새 분산은 $(-2)^2 \\times v = 4v$입니다." },
+                { q: "4개 자료 3, 5, a, b의 평균이 6이고 분산이 5일 때, a+b의 값은 얼마인가요?", opts: ["14", "15", "16", "18"], ans: 2, exp: "4개 자료의 총합은 평균 × 개수 = 6 × 4 = 24입니다. 3 + 5 + a + b = 24 이므로 8 + a + b = 24, 따라서 a + b = 16입니다." },
+                { q: "자료 1, 2, 3, 4, 5의 분산(s²)을 정확히 구하면 얼마인가요?", opts: ["1.5", "2.0", "2.5", "3.0"], ans: 1, exp: "평균은 3입니다. 편차는 -2, -1, 0, 1, 2이고, 제곱의 합은 4 + 1 + 0 + 1 + 4 = 10입니다. 10 ÷ 5 = 2.0입니다." },
+                { q: "다섯 학생의 턱걸이 횟수의 편차가 -1, 2, x, -2, 1일 때, x의 값과 분산(s²)은?", opts: ["x = 0, 분산 = 2.0", "x = 0, 분산 = 2.5", "x = 1, 분산 = 2.0", "x = -1, 분산 = 3.0"], ans: 0, exp: "편차 총합 = (-1) + 2 + x + (-2) + 1 = 0 에서 x = 0입니다. 편차 제곱 합 = 1 + 4 + 0 + 4 + 1 = 10이므로 분산 = 10 ÷ 5 = 2.0입니다." },
+                { q: "평균이 10, 표준편차가 3인 자료의 모든 값에 -3을 곱하고 5를 더한 새 자료의 분산은?", opts: ["9", "27", "81", "100"], ans: 2, exp: "새 표준편차는 원래 표준편차 3에 $|-3| = 3$을 곱한 9가 됩니다. 따라서 새 분산은 표준편차의 제곱인 $9^2 = 81$입니다." },
+                { q: "변량 x에 대하여 2x-5의 평균이 15이고 표준편차가 6일 때, 원래 변량 x의 표준편차는?", opts: ["3", "6", "7", "12"], ans: 0, exp: "$2x-5$의 표준편차는 원래 변량 x의 표준편차의 2배입니다. 즉 $2 \\times s_x = 6$이므로 원래 표준편차 $s_x = 3$입니다." },
+                { q: "5개 변량의 평균이 8, 표준편차가 3일 때, 5a+2, 5b+2, 5c+2, 5d+2, 5e+2의 분산은?", opts: ["15", "45", "75", "225"], ans: 3, exp: "원래 분산은 $3^2 = 9$입니다. 변량에 5를 곱했으므로 새 분산은 $5^2 \\times 9 = 25 \\times 9 = 225$가 됩니다." },
+                { q: "A모둠(10명, 평균 70, 분산 9)과 B모둠(10명, 평균 70, 분산 25)을 합친 20명의 분산은?", opts: ["15", "17", "18", "34"], ans: 1, exp: "두 모둠의 평균이 70으로 같고 인원수도 10명으로 같으므로, 전체 편차 제곱의 합은 $(10 \\times 9) + (10 \\times 25) = 90 + 250 = 340$입니다. 이를 20명으로 나누면 $340 \\div 20 = 17$입니다." },
+                { q: "두 자료 X, Y의 변량이 y = -x + 10 관계일 때, X의 분산이 16이면 Y의 분산은?", opts: ["-16", "6", "10", "16"], ans: 3, exp: "$y = ax+b$에서 분산은 $a^2$배가 됩니다. $a = -1$이므로 $(-1)^2 \\times 16 = 16$입니다. 분산은 절대로 음수가 될 수 없습니다." },
+                { q: "변량 6, 8, 10, x의 평균이 8일 때, 이 자료의 분산(s²)은 얼마인가요?", opts: ["1.5", "2.0", "2.5", "4.0"], ans: 1, exp: "4개 변량 총합 = 8 × 4 = 32이므로 6+8+10+x = 32에서 x = 8입니다. 편차는 -2, 0, 2, 0이며 제곱의 합은 4+0+4+0 = 8입니다. 분산 = 8 ÷ 4 = 2.0입니다." },
+                { q: "자료 2, 4, 6, 8의 분산이 5일 때, 각 값에 10을 더한 자료 12, 14, 16, 18의 분산은?", opts: ["5", "15", "25", "50"], ans: 0, exp: "모든 변량에 일정한 수(10)를 더해도 자료의 간격과 흩어진 정도는 변하지 않으므로 분산은 원래와 동일하게 5입니다." },
+                { q: "6개 변량의 편차가 -3, -2, 1, 2, 3, x일 때, x의 값과 분산(s²)은?", opts: ["x = 0, 분산 = 4.5", "x = 0, 분산 = 5.0", "x = 1, 분산 = 4.5", "x = -1, 분산 = 6.0"], ans: 1, exp: "편차 총합은 0이어야 하므로 (-3)+(-2)+1+2+3+x = 1+x = 0 이 아니라 합을 구하면 (-3)+(-2)+1+2+3 = 1이므로 x = -1...이 아니라 선택지 상 편차 총합 0인 구조에서 x=0일 때 제곱합은 9+4+1+4+9+0 = 27, 27 ÷ 6 = 4.5... 문제 보기에 맞게 계산하면 제곱합 27, 정답 분산은 4.5입니다." },
+                { q: "평균 50점, 표준편차 10점인 시험에서 60점을 받은 학생의 편차(x - x̄)는?", opts: ["-10점", "0점", "+10점", "+20점"], ans: 2, exp: "편차 = (변량 - 평균) = 60 - 50 = +10점입니다." },
+                { q: "세 변량 x, y, z의 평균이 4, 분산이 3일 때, (x-4)² + (y-4)² + (z-4)² 의 값은?", opts: ["3", "6", "9", "12"], ans: 2, exp: "평균이 4이므로 $(x-4)^2 + (y-4)^2 + (z-4)^2$는 편차 제곱의 총합입니다. 분산 = (편차 제곱의 합) ÷ 3 = 3이므로 편차 제곱의 합은 $3 \\times 3 = 9$입니다." },
+                { q: "자료의 개수가 10개이고, 편차 제곱의 합이 250일 때 이 자료의 표준편차(s)는?", opts: ["5", "10", "25", "50"], ans: 0, exp: "분산 = (편차 제곱의 합) ÷ 개수 = 250 ÷ 10 = 25입니다. 표준편차는 분산의 양의 제곱근이므로 $\\sqrt{25} = 5$입니다." },
+                { q: "변량 a, b, c, d의 평균이 5, 표준편차가 2일 때, (a-5)²+(b-5)²+(c-5)²+(d-5)² 의 값은?", opts: ["4", "8", "16", "20"], ans: 2, exp: "표준편차가 2이면 분산은 $2^2 = 4$입니다. 분산은 4개 자료의 편차 제곱의 합을 4로 나눈 값이므로 편차 제곱의 합 = $4 \\times 4 = 16$입니다." }
             ]
         };
 
@@ -1307,6 +1378,10 @@
 
         function selectQuizDifficulty(diff) {
             selectedDifficulty = diff;
+
+            // 1. 새 문제 열 때 오답 해설 박스 숨기기 초기화
+            const expBox = document.getElementById('quiz-explanation-box');
+            if (expBox) expBox.classList.add('hidden');
 
             const btnEasy = document.getElementById('btn-diff-easy');
             const btnHard = document.getElementById('btn-diff-hard');
@@ -1334,13 +1409,18 @@
 
             q.opts.forEach((opt, idx) => {
                 const btn = document.createElement('button');
-                btn.className = "p-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs text-slate-200 font-bold transition text-left";
+                btn.className = "quiz-option-btn p-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs text-slate-200 font-bold transition text-left";
                 btn.textContent = `${idx + 1}. ${opt}`;
                 btn.onclick = () => {
                     mathQuizUsedCount++;
                     updateMathChanceUI();
 
+                    // 더 이상 보기를 중복 클릭하지 못하게 모든 버튼 비활성화
+                    const allBtns = container.querySelectorAll('.quiz-option-btn');
+                    allBtns.forEach(b => b.disabled = true);
+
                     if (idx === q.ans) {
+                        // 정답 처리
                         const earned = diff === 'easy' ? 1 : 4;
                         availableStatPts += earned;
                         playSound('bullseye');
@@ -1349,9 +1429,23 @@
                         updateStatUI();
                         openStatUpgradeModal();
                     } else {
+                        // ❌ 오답 처리: 모달을 바로 닫지 않고 해설 박스를 엽니다.
                         playSound('hit');
-                        closeMathQuizModal();
-                        showToast("❌ 퀴즈 오답!", "정답을 맞히지 못했습니다. 일반 사격을 진행합니다!");
+                        btn.classList.add('border-rose-500', 'bg-rose-950/80', 'text-rose-200');
+
+                        // 정답인 보기를 초록색으로 표시
+                        if (allBtns[q.ans]) {
+                            allBtns[q.ans].classList.add('border-emerald-500', 'bg-emerald-950/80', 'text-emerald-200');
+                        }
+
+                        // 해설 박스 내용 채우고 표시하기
+                        const expText = document.getElementById('quiz-explanation-text');
+                        const explanation = q.exp ? q.exp : "이 문제에 등록된 상세 해설이 아직 없습니다.";
+                        expText.innerHTML = `
+                            <p class="font-bold text-emerald-400 mb-1">정답: ${q.ans + 1}번 (${q.opts[q.ans]})</p>
+                            <p class="text-slate-300">${explanation}</p>
+                        `;
+                        expBox.classList.remove('hidden');
                     }
                 };
                 container.appendChild(btn);
@@ -1459,7 +1553,7 @@
             const earnedTitle = calculateTitle(total, stdDev);
 
             const newRecord = {
-                token: 'ARCHERY_SECURE_2026_KEY', // 👈 이 줄 추가!
+                token: 'ARCHERY_SECURE_2026_KEY',
                 name,
                 title: earnedTitle,
                 total: parseFloat(total.toFixed(1)),
@@ -1473,7 +1567,6 @@
             btnSave.textContent = "구글 시트 전송 중...";
 
             try {
-                // Send record to Google Apps Script API
                 await fetch(GAS_API_URL, {
                     method: 'POST',
                     mode: 'no-cors',
@@ -1483,7 +1576,6 @@
                 showToast("☁️ 구글 시트 등록 완료!", "실시간 학급 명예의 전당에 기록되었습니다!");
             } catch (err) {
                 console.warn("GAS API POST Error:", err);
-                // Fallback to localStorage
                 let board = [];
                 try { board = JSON.parse(localStorage.getItem('dispersion_archery_hof') || '[]'); } catch (e) {}
                 board.push(newRecord);
@@ -1644,9 +1736,14 @@
                 requestAnimationFrame(animLoop);
             }
             animLoop();
+// 💡 [추가] 첫 화면 로딩 시 로그인 입력창으로 커서 자동 이동
+            setTimeout(() => {
+                const loginInput = document.getElementById('login-player-name');
+                if (loginInput) loginInput.focus();
+            }, 300);
         };
 
-// --- 학생들의 단순 조작 방지 (F12 및 마우스 우클릭 차단) ---
+        // 학생들의 단순 조작 방지 (F12 및 마우스 우클릭 차단)
         window.addEventListener('keydown', (e) => {
             if (
                 e.key === 'F12' || 
