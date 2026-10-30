@@ -1459,6 +1459,7 @@
             const earnedTitle = calculateTitle(total, stdDev);
 
             const newRecord = {
+                token: 'ARCHERY_SECURE_2026_KEY', // 👈 이 줄 추가!
                 name,
                 title: earnedTitle,
                 total: parseFloat(total.toFixed(1)),
@@ -1644,6 +1645,22 @@
             }
             animLoop();
         };
+
+// --- 학생들의 단순 조작 방지 (F12 및 마우스 우클릭 차단) ---
+        window.addEventListener('keydown', (e) => {
+            if (
+                e.key === 'F12' || 
+                (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) ||
+                (e.ctrlKey && (e.key === 'u' || e.key === 'U'))
+            ) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+
+        window.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        });
     </script>
 </body>
 </html>
