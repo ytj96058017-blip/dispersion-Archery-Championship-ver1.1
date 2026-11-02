@@ -1434,77 +1434,97 @@
             let q = null;
             if (Math.random() < 0.65) { // 65% 확률로 완전 난수 동적 문제 출제
                 if (diff === 'easy') {
-                    // [보통 난이도 동적 생성: 평균 구하기, 편차 합 성질]
-                    const count = 5;
-                    const targetMean = Math.floor(Math.random() * 5) + 6; // 평균 6~10
-                    const offsets = [-3, -1, 0, 1, 3].sort(() => Math.random() - 0.5);
-                    const values = offsets.map(o => targetMean + o);
-                    
                     if (Math.random() < 0.5) {
+                        // [유형 1: 5발 사격 점수의 평균 구하기]
+                        const targetMean = Math.floor(Math.random() * 4) + 6; // 평균 6~9점
+                        const offsets = [-3, -1, 0, 1, 3].sort(() => Math.random() - 0.5);
+                        const values = offsets.map(o => targetMean + o);
                         const sum = values.reduce((a, b) => a + b, 0);
-                        const wrong1 = targetMean - 1;
-                        const wrong2 = targetMean + 1;
-                        const wrong3 = targetMean + 2;
-                        const opts = [targetMean + "점", wrong1 + "점", wrong2 + "점", wrong3 + "점"].sort(() => Math.random() - 0.5);
+
+                        const correct = `${targetMean}.0점`;
+                        const wrongSet = new Set([correct]);
+                        let delta = 1;
+                        while (wrongSet.size < 4) {
+                            wrongSet.add(`${targetMean + delta}.0점`);
+                            wrongSet.add(`${Math.max(1, targetMean - delta)}.0점`);
+                            delta++;
+                        }
+                        const opts = Array.from(wrongSet).sort(() => Math.random() - 0.5);
                         q = {
                             q: `어떤 사수가 쏜 5발의 점수가 [${values.join(', ')}]점입니다. 이 사수의 평균 점수(x̄)는 얼마일까요?`,
                             opts: opts,
-                            ans: opts.indexOf(targetMean + "점"),
+                            ans: opts.indexOf(correct),
                             exp: `총합 = ${values.join(' + ')} = ${sum}점입니다. 화살이 5발이므로 평균 = ${sum} ÷ 5 = ${targetMean}.0점입니다.`
                         };
                     } else {
-                        // 편차 합 공식 문제 (하나를 x로 비워두기)
-                        const hiddenIdx = Math.floor(Math.random() * count);
-                        const hiddenVal = offsets[hiddenIdx];
-                        const displayDevs = offsets.map((o, idx) => idx === hiddenIdx ? "x" : (o > 0 ? `+${o}` : `${o}`));
-                        const wrongOpts = [hiddenVal + 1, hiddenVal - 1, -hiddenVal].map(v => v > 0 ? `+${v}` : `${v}`);
-                        const correctStr = hiddenVal > 0 ? `+${hiddenVal}` : `${hiddenVal}`;
-                        const opts = [correctStr, ...wrongOpts].filter((v, i, a) => a.indexOf(v) === i);
-                        while(opts.length < 4) opts.push("0");
-                        opts.sort(() => Math.random() - 0.5);
+                        // [유형 2: 편차의 총합은 0 성질을 이용한 미지수 x 구하기]
+                        // 0이 아닌 0 보장 4개 편차 생성 (예: -3, +1, +4, -2 -> 합 0)
+                        const d1 = (Math.floor(Math.random() * 3) + 1) * (Math.random() < 0.5 ? 1 : -1);
+                        const d2 = (Math.floor(Math.random() * 3) + 1) * (Math.random() < 0.5 ? 1 : -1);
+                        const d3 = (Math.floor(Math.random() * 2) + 1) * (Math.random() < 0.5 ? 1 : -1);
+                        const d4 = -(d1 + d2 + d3); // 총합 0 강제 보장
+                        const devList = [d1, d2, d3, d4].sort(() => Math.random() - 0.5);
+
+                        const hiddenIdx = Math.floor(Math.random() * 4);
+                        const hiddenVal = devList[hiddenIdx];
+                        const displayDevs = devList.map((d, idx) => idx === hiddenIdx ? "x" : (d > 0 ? `+${d}` : `${d}`));
+                        const correct = hiddenVal > 0 ? `+${hiddenVal}` : `${hiddenVal}`;
+
+                        const wrongSet = new Set([correct]);
+                        [-4, -3, -2, -1, 1, 2, 3, 4].forEach(val => {
+                            if (wrongSet.size < 4) {
+                                wrongSet.add(val > 0 ? `+${val}` : `${val}`);
+                            }
+                        });
+                        const opts = Array.from(wrongSet).sort(() => Math.random() - 0.5);
                         q = {
-                            q: `사수 5명의 점수 편차가 각각 [${displayDevs.join(', ')}]일 때, 미지수 x의 값은 얼마일까요?`,
+                            q: `사수 4명의 점수 편차가 각각 [${displayDevs.join(', ')}]일 때, 미지수 x의 값은 얼마일까요?`,
                             opts: opts,
-                            ans: opts.indexOf(correctStr),
-                            exp: `편차의 총합은 항상 0이어야 합니다. 따라서 모든 편차를 더했을 때 0이 되도록 하는 x의 값은 ${correctStr}입니다.`
+                            ans: opts.indexOf(correct),
+                            exp: `편차의 총합은 항상 0이어야 합니다. (${displayDevs.join(' + ')}) = 0 이므로 미지수 x = ${correct} 입니다.`
                         };
                     }
                 } else {
-                    // [고난도 동적 생성: 분산 계산, 변량 변환 공식]
-                    const count = 5;
-                    const m = Math.floor(Math.random() * 4) + 6; // 평균 6~9
-                    const devs = [-2, -1, 0, 1, 2].sort(() => Math.random() - 0.5); // 편차 제곱합 = 4+1+0+1+4 = 10, 분산 = 2.0 고정 난수 변환
-                    const vals = devs.map(d => m + d);
-                    
                     if (Math.random() < 0.5) {
+                        // [유형 3: 변량 변환 공식 aX + b 의 표준편차]
                         const a = [2, 3, 4][Math.floor(Math.random() * 3)];
-                        const b = [1, 3, 5][Math.floor(Math.random() * 3)];
+                        const b = [3, 5, 7][Math.floor(Math.random() * 3)];
                         const origStd = [2, 3][Math.floor(Math.random() * 2)];
-                        const newStd = origStd * a;
-                        const opts = [newStd.toString(), (origStd + b).toString(), (newStd + b).toString(), (origStd * a * a).toString()].sort(() => Math.random() - 0.5);
+                        const newStd = a * origStd; // 새 표준편차는 a배
+
+                        const correct = `${newStd}점`;
+                        const wrongSet = new Set([correct]);
+                        wrongSet.add(`${origStd + b}점`);
+                        wrongSet.add(`${newStd + b}점`);
+                        wrongSet.add(`${a * origStd * origStd}점`);
+                        wrongSet.add(`${origStd * a + 1}점`);
+
+                        const opts = Array.from(wrongSet).slice(0, 4).sort(() => Math.random() - 0.5);
                         q = {
                             q: `사수의 원래 사격 점수 변량 X의 표준편차가 ${origStd}점입니다. 모든 점수를 ${a}배 하고 ${b}점을 더한 (${a}X + ${b})의 새로운 표준편차는 얼마일까요?`,
-                            opts: opts.map(o => o + "점"),
-                            ans: opts.indexOf(newStd.toString()),
-                            exp: `변량을 aX + b로 변환할 때, 새로운 표준편차는 원래 표준편차의 |a|배가 됩니다. 뒤에 더한 ${b}점은 흩어진 정도(산포도)에 영향을 주지 않으므로 새 표준편차 = ${a} × ${origStd} = ${newStd}점입니다.`
+                            opts: opts,
+                            ans: opts.indexOf(correct),
+                            exp: `변량을 aX + b로 변환할 때, 새로운 표준편차는 원래 표준편차의 |a|배가 됩니다. 뒤에 더한 ${b}점은 산포도에 영향을 주지 않으므로 새 표준편차 = ${a} × ${origStd} = ${newStd}점입니다.`
                         };
                     } else {
-                        const sqSum = 10;
-                        const variance = (sqSum / count).toFixed(2);
-                        const wrongV1 = (sqSum / (count - 1)).toFixed(2);
-                        const wrongV2 = (variance * 1.5).toFixed(2);
-                        const wrongV3 = (Math.sqrt(variance)).toFixed(2);
-                        const opts = [variance, wrongV1, wrongV2, wrongV3].sort(() => Math.random() - 0.5);
+                        // [유형 4: 5개 변량의 실제 분산(s²) 정밀 계산]
+                        const m = Math.floor(Math.random() * 3) + 7; // 평균 7~9점
+                        // 편차: [-2, -1, 0, 1, 2] -> 제곱합 = 4+1+0+1+4 = 10, 분산 = 10 ÷ 5 = 2.0
+                        const devs = [-2, -1, 0, 1, 2].sort(() => Math.random() - 0.5);
+                        const vals = devs.map(d => m + d);
+                        const correct = "2.0";
+
+                        const opts = ["2.0", "1.5", "2.5", "4.0"].sort(() => Math.random() - 0.5);
                         q = {
                             q: `평균이 ${m}점인 5발의 사격 점수가 [${vals.join(', ')}]점일 때, 이 점수들의 분산(s²)을 정확히 구하면?`,
                             opts: opts,
-                            ans: opts.indexOf(variance),
-                            exp: `각 점수의 편차는 [${devs.map(d => (d>0?'+'+d:d)).join(', ')}]입니다. 편차를 각각 제곱하면 [4, 1, 0, 1, 4]이고 제곱의 합은 10입니다. 따라서 분산 = 10 ÷ 5 = ${variance}입니다.`
+                            ans: opts.indexOf(correct),
+                            exp: `각 점수의 편차는 [${devs.map(d => (d > 0 ? '+' + d : d)).join(', ')}]입니다. 편차를 각각 제곱하면 [4, 1, 0, 1, 4]이며 제곱의 합은 10입니다. 따라서 분산 = 10 ÷ 5 = 2.0 입니다.`
                         };
                     }
                 }
             } else {
-                // 기존 문제 은행 풀에서 랜덤 추출
+                // 기존 문제 은행 풀에서 랜덤 추출 (35% 확률)
                 const pool = quizBank[diff];
                 q = pool[Math.floor(Math.random() * pool.length)];
             }
